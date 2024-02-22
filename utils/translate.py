@@ -1,4 +1,3 @@
-import io
 import time
 from io import BytesIO
 import deepl
@@ -6,7 +5,6 @@ import os
 from dotenv import load_dotenv
 from gtts import gTTS
 from deepgram import DeepgramClient, DeepgramClientOptions, PrerecordedOptions
-from pydub import AudioSegment
 
 def load_env():
     dotenv_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'config.env')
