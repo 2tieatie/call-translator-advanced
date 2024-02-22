@@ -1,0 +1,206 @@
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
+from flask_socketio import SocketIO, emit, join_room, leave_room
+from languages.get_languages import languages, names, get_language
+from models.models import Participant, Room, Message
+from utils.translate import Translator
+from utils.utils import *
+from uuid import uuid4
+# Next two lines are for the issue: https://github.com/miguelgrinberg/python-engineio/issues/142
+from engineio.payload import Payload
+Payload.max_decode_packets = 200
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = "thisismys3cr3tk3y"
+
+socketio = SocketIO(app)
+
+
+_users_in_room = {}
+_room_of_sid = {}
+_name_of_sid = {}
+
+rooms = []
+
+
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        room_name = request.form['room_id']
+        room_id = str(uuid4())
+        room = Room(room_id=room_id, name=room_name)
+        add_room(room=room, rooms=rooms)
+
+        return redirect(url_for("entry_checkpoint", room_id=room_id, room_name=room.name))
+
+    return render_template("home.html")
+
+
+
+@app.route("/room/<string:room_id>/")
+def enter_room(room_id):
+    room = get_room_by_id(room_id=room_id, rooms=rooms)
+    if room_id not in session:
+        return redirect(url_for("entry_checkpoint", room_id=room_id))
+    return render_template("chatroom.html", room_id=room_id, room_name=room.name, display_name=session[room_id]["name"], mute_audio=session[room_id]["mute_audio"], mute_video=session[room_id]["mute_video"], language=session[room_id]['language'])
+
+
+@app.route("/room/<string:room_id>/checkpoint/", methods=["GET", "POST"])
+def entry_checkpoint(room_id):
+    room = get_room_by_id(room_id=room_id, rooms=rooms)
+    if request.method == "POST":
+        display_name = request.form['display_name']
+        mute_audio = request.form['mute_audio']
+        mute_video = request.form['mute_video']
+        language = request.form['language']
+        session[room_id] = {"name": display_name, "mute_audio":mute_audio, "mute_video":mute_video, 'language': language}
+        return redirect(url_for("enter_room", room_id=room_id))
+    return render_template("chatroom_checkpoint.html", room_id=room_id, room_name=room.name)
+    
+
+@socketio.on("connect")
+def on_connect():
+    sid = request.sid
+    print("New socket connected ", sid)
+    
+
+@socketio.on("join-room")
+def on_join_room(data):
+    sid = request.sid
+    room_id = data["room_id"]
+    room_name = data['room_name']
+    display_name = session[room_id]["name"]
+    language = session[room_id]['language']
+    join_room(room_id)
+    _room_of_sid[sid] = room_id
+    _name_of_sid[sid] = display_name
+    room = get_room_by_id(rooms=rooms, room_id=room_id)
+    participant = Participant(username=display_name, user_id=sid, language=language)
+    room.add_participant(participant)
+    [print(i) for i in rooms]
+
+    print("[{}] New member joined: {}<{}>".format(room_id, display_name, sid))
+    emit("user-connect", {"sid": sid, "name": display_name}, broadcast=True, include_self=False, room=room_id)
+    
+
+    if room_id not in _users_in_room:
+        _users_in_room[room_id] = [sid]
+        emit("user-list", {"my_id": sid})
+    else:
+        usrlist = {u_id:_name_of_sid[u_id] for u_id in _users_in_room[room_id]}
+        emit("user-list", {"list": usrlist, "my_id": sid})
+        _users_in_room[room_id].append(sid)
+
+    print("\nusers: ", _users_in_room, "\n")
+
+
+@socketio.on("disconnect")
+def on_disconnect():
+    sid = request.sid
+    room_id = _room_of_sid[sid]
+    display_name = _name_of_sid[sid]
+
+    print("[{}] Member left: {}<{}>".format(room_id, display_name, sid))
+    emit("user-disconnect", {"sid": sid}, broadcast=True, include_self=False, room=room_id)
+
+    _users_in_room[room_id].remove(sid)
+    if len(_users_in_room[room_id]) == 0:
+        _users_in_room.pop(room_id)
+
+    _room_of_sid.pop(sid)
+    _name_of_sid.pop(sid)
+    participant = get_participant_by_id(room_id=room_id, rooms=rooms, user_id=sid)
+    if participant:
+        room = get_room_by_id(room_id=room_id, rooms=rooms)
+        if room:
+            room.remove_participant(participant=participant)
+
+    print("\nusers: ", _users_in_room, "\n")
+
+
+@socketio.on("data")
+def on_data(data):
+    sender_sid = data['sender_id']
+    target_sid = data['target_id']
+    if sender_sid != request.sid:
+        print("[Not supposed to happen!] request.sid and sender_id don't match!!!")
+
+    if data["type"] != "new-ice-candidate":
+        print('{} message from {} to {}'.format(data["type"], sender_sid, target_sid))
+    socketio.emit('data', data, room=target_sid)
+
+
+@socketio.on("get_users_with_other_languages")
+def get_users_with_other_languages(data):
+    user_id = request.sid
+    room_id = data['room_id']
+    language = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
+    other_participants = get_other_participants(user_id=user_id, room_id=room_id, rooms=rooms)
+    with_other_languages = []
+    for participant in other_participants:
+        if participant.language != language:
+            with_other_languages.append(participant.user_id)
+    print(with_other_languages)
+    socketio.emit('users_with_other_languages', {'with_other_languages': with_other_languages, 'user_id': user_id}, room=room_id)
+
+
+@app.route('/languages', methods=['GET'])
+def get_languages():
+    return jsonify({'names': names})
+
+
+@socketio.on("new_recording")
+def new_recording(data):
+    user_id = request.sid
+    room_id = data['room_id']
+    audio_blob = data['audio']
+    time_from_last_recording = data['last_recording'] / 1000
+    last_message = None
+    if time_from_last_recording <= MAX_MESSAGES_GAP:
+        last_message = get_last_message_by_user_id(room_id=room_id, user_id=user_id, rooms=rooms)
+    sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
+    receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
+    room = get_room_by_id(room_id=room_id, rooms=rooms)
+    if not sender and not receivers:
+        return
+    deepgram_language_sender = get_language(sender.language, 'deepgram')
+    receivers_languages: dict[Participant, dict[str, str]] = {}
+    for receiver in receivers:
+        receivers_languages[receiver] = {}
+        receivers_languages[receiver]['deepl'] = get_language(receiver.language, 'deepl')
+        receivers_languages[receiver]['gtts'] = get_language(receiver.language, 'gtts')
+    translation_results = {}
+    data = Translator.recognize_speech(audio_bytes=audio_blob, language=deepgram_language_sender)
+    if data['status'] == 'succeeded':
+        if last_message:
+            data['text'] = f'{last_message.original_text} -  {data['text']}'
+        print(data)
+        for receiver in receivers_languages.keys():
+            if receiver.language != sender.language:
+                result = Translator.translate(data=data, deepl_language=receivers_languages[receiver]['deepl'])
+                result['name'] = sender.username
+                result['gtts_language'] = receivers_languages[receiver]['gtts']
+                if result['status'] == 'success':
+                    print(result)
+                    translation_results[receiver.user_id] = result
+                    message = Message(sender=sender, receiver=receiver, original_text=result['original_text'], translated_text=result['translated_text'])
+                    room.add_message(message)
+
+        if translation_results:
+            socketio.emit('new_message', translation_results)
+
+
+@app.route('/get_chat_history', methods=['GET'])
+def get_chat_history_serv():
+    room_id = request.args.get('room_id')
+    user_id = request.args.get('user_id')
+    room = get_room_by_id(room_id=room_id, rooms=rooms)
+    chat_history_str = get_chat_history(room=room, user_id=user_id)
+    with open('chat_history.txt', 'w') as file:
+        file.write(chat_history_str)
+    return send_file('chat_history.txt', as_attachment=True)
+
+
+if __name__ == "__main__":
+    socketio.run(app, debug=True)
+

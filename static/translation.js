@@ -1,0 +1,232 @@
+let dataArray, analyser, stream, remoteStreamSrc
+const RAPID = 3 // ПОРОГ ГРОМКОСТИ В Дб ПРИ КОТОРОМ НАЧИНАТЬ ЗАПИСЬ
+let mediaRecorder
+let lastRecording = new Date().getTime()
+let chunks = []
+let lastRecordingTimeDelta
+let aboveRapid = false
+let lastAboveRapid = new Date().getTime()
+const gap = 750 // ДЛИНА ТИШИНЫ (В мс), ПРИ КОТОРОЙ ОСТАНАВЛИВАТЬ ЗАПИСЬ
+let recorded = false
+let recordingStartTime = 0
+let silenceDuration = gap
+let outputted = false
+let start = false
+const minTime = -100
+const errLoss = 40
+const audioQueue = []
+let currentAudioIndex = 0
+let audioElement
+let isPlaying = false;
+let filter, compressor, mediaStreamSource;
+let msg = new SpeechSynthesisUtterance();
+msg.rate = 1;
+msg.pitch = 1;
+let startedRecording = new Date().getTime()
+let startedSpeaking
+let lastChunks = []
+const MAXL = 100
+
+let handleNewMessage = (local, translated_text, name, original_text) => {
+    addMessage(translated_text, local, name, original_text)
+}
+
+
+
+socket.on('new_message', (data) => {
+    if (!data.hasOwnProperty(myID)) {
+        let d = data[Object.keys(data)[0]]
+        console.log(d)
+        handleNewMessage(true, d.translated_text, myName, d.original_text)
+        return
+    }
+    let d = data[myID]
+    handleNewMessage(false, d.translated_text, d.name, d.original_text)
+    if ('speechSynthesis' in window) {
+        msg.text = d.translated_text
+        msg.lang = d.gtts_language
+        window.speechSynthesis.speak(msg);
+        console.log(d)
+    } else {
+        console.log('Web Speech API не поддерживается в этом браузере.');
+    }
+})
+
+function updateVolumeMeter() {
+    analyser.getByteFrequencyData(dataArray)
+    const averageVolume = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length
+    // console.log(new Date().getTime() - lastRecording)
+    // console.log(averageVolume)
+    lastChunks.push(averageVolume)
+    if (lastChunks.length >= MAXL) {
+        lastChunks.splice(1, 1);
+    }
+    const avg = lastChunks.reduce((accumulator, currentValue) => accumulator + currentValue, 0) / lastChunks.length;
+    // console.log(avg)
+    if (averageVolume >= RAPID) {
+        outputted = false
+        if (!aboveRapid) {
+            if (!start) {
+                console.log(('Started recording. Volume: '), averageVolume)
+                // НАЧАТЬ ЗАПИСЬ
+                lastRecordingTimeDelta = new Date().getTime() - lastRecording
+                startedSpeaking = new Date().getTime()
+            }
+            lastAboveRapid = new Date().getTime()
+            aboveRapid = true
+            start = true
+            if (silenceDuration > gap) {
+                recordingStartTime = new Date().getTime()
+            }
+        }
+    } else {
+        aboveRapid = false
+        silenceDuration = new Date().getTime() - lastAboveRapid
+        if (silenceDuration > gap && !outputted) {
+            console.log(('Stop recording: (volume, duration)'), averageVolume, new Date().getTime() - recordingStartTime)
+            mediaRecorder.stop()
+            mediaRecorder.start();
+            outputted = true
+            start = false
+            lastRecording = new Date().getTime()
+        }
+    }
+}
+
+let initAnalyser = (stream) => {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    analyser = audioContext.createAnalyser();
+    const noiseSuppression = audioContext.createDynamicsCompressor()
+    noiseSuppression.threshold.value = 0 // УРОВЕНЬ ШУМОИЗОЛЯЦИИ, (ОТ -100 до 0)
+    analyser.fftSize = 256;
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser);
+
+    const audioElement = new Audio();
+    audioElement.srcObject = stream;
+
+    const audioSource = audioContext.createMediaElementSource(audioElement)
+    // audioSource.connect(noiseSuppression);
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    setInterval(updateVolumeMeter, 0);
+
+    const audioTrack = stream.getAudioTracks()[0];
+    const audioOnlyStream = new MediaStream([audioTrack])
+    mediaRecorder = new MediaRecorder(audioOnlyStream, { mimeType: 'audio/webm' });
+    mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+            chunks.push(event.data)
+        }
+    };
+
+    mediaRecorder.onstop = async () => {
+        let audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        console.log(audioBlob)
+        let reader = new FileReader();
+
+        reader.onload = function(event) {
+            let audioData = event.target.result;
+            let audioContext = new AudioContext();
+
+            audioContext.decodeAudioData(audioData, function(decodedData) {
+                let sampleRate = decodedData.sampleRate;
+
+                let startTime =(sampleRate * (lastRecordingTimeDelta / 1000)) - 2;
+                let trimmedAudioData = decodedData.getChannelData(0).slice(startTime);
+
+                let newBuffer = audioContext.createBuffer(1, trimmedAudioData.length, sampleRate);
+                newBuffer.copyToChannel(trimmedAudioData, 0);
+
+                let audioBlobTrimmed = bufferToWave(newBuffer);
+                console.log('Обрезанный Blob:', audioBlobTrimmed);
+                socket.emit('new_recording', { audio: audioBlobTrimmed, room_id: myRoomID, last_recording: lastRecordingTimeDelta });
+            });
+        };
+
+        reader.readAsArrayBuffer(audioBlob);
+        // socket.emit('new_recording', { audio: audioBlob, room_id: myRoomID, last_recording: lastRecordingTimeDelta });
+
+        chunks = [];
+    };
+
+
+
+}
+
+let getParticipantsWithOtherLanguages = () => {
+    socket.emit('get_users_with_other_languages', {room_id: myRoomID})
+}
+
+socket.on('users_with_other_languages', (data) => {
+    console.log('data', data)
+    if (data.user_id === myID) {
+        muteOthers(data.with_other_languages)
+    }
+})
+let muteOthers = (with_other_languages) => {
+    console.log(with_other_languages)
+    with_other_languages.forEach((id) => {
+        const vid_element = document.getElementById(`vid_${id}`)
+        vid_element.muted = true
+    })
+}
+
+let unmuteAll = (with_other_languages) => {
+    with_other_languages.forEach((id) => {
+        const vid_element = document.getElementById(`vid_${id}`)
+        vid_element.muted = true
+    })
+}
+function bufferToWave(abuffer) {
+    let numberOfChannels = abuffer.numberOfChannels,
+        length = abuffer.length,
+        sampleRate = abuffer.sampleRate,
+        interleaved = abuffer.getChannelData(0),
+        buffer = new ArrayBuffer(44 + interleaved.length * 2),
+        view = new DataView(buffer),
+        channels = [], i, sample, offset = 0, dataLength = interleaved.length * 2;
+
+    setUint32(0x46464952);
+    setUint32(36 + dataLength);
+    setUint32(0x45564157);
+    setUint32(0x20746d66);
+    setUint32(16);
+    setUint16(1);
+    setUint16(numberOfChannels);
+    setUint32(sampleRate);
+    setUint32(sampleRate * 2 * numberOfChannels);
+    setUint16(numberOfChannels * 2);
+    setUint16(16);
+    setUint32(0x61746164);
+    setUint32(dataLength);
+
+    for(i = 0; i < interleaved.length; i++){
+        sample = Math.max(-1, Math.min(1, interleaved[i]));
+        sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0;
+        view.setInt16(offset, sample, true);
+        offset += 2;
+    }
+
+    return new Blob([buffer], {type: "audio/wav"});
+
+    function setUint16(data) {
+        view.setUint16(offset, data, true);
+        offset += 2;
+    }
+
+    function setUint32(data) {
+        view.setUint32(offset, data, true);
+        offset += 4;
+    }
+}
+
+function downloadChatHistory(room_id, user_id) {
+    let url = `/get_chat_history?room_id=${room_id}&user_id=${user_id}`;
+    let link = document.createElement('a');
+    link.href = url;
+    link.download = 'chat_history.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}

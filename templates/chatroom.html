@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="{{url_for('static', filename='style.css')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='chatroom.css')}}">
+    <script type="text/javascript">
+        var myRoomID = "{{room_id}}";
+        let roomName = "{{room_name}}"
+        var myName = "{{display_name}}";
+        var audioMuted = true;
+        // var audioMuted = "{{mute_audio}}"=="1";
+        var videoMuted = "{{mute_video}}"=="1";
+        console.log(">> {{mute_audio}}, {{mute_video}}", audioMuted, videoMuted);
+    </script>
+    <script src="https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js" onload="startProcessing()"></script>
+    <script src="{{url_for('static', filename='chatroom_ui.js')}}"></script>
+    <script src="{{url_for('static', filename='chatroom_networking.js')}}"></script>
+    <script src="{{url_for('static', filename='translation.js')}}"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Chat [{{room_id}}]</title>
+</head>
+<body>
+    <div class="px-0 mx-0" style="align-items: center; height: 100%">
+
+    <div class="container-1" style="height: 100vh; width: 100%; min-height: 60vh">
+            <div id="video_grid_container" style="width: 100%; margin-top: 2%;">
+                <div id="video_grid" class="video-grid" style="height: auto; width: 100%;">
+                    </div>
+            </div>
+
+            <div class="chat-container" id="chatContainer">
+                <div class="chat">
+<!--                    <div class="title text-center">-->
+<!--                        <div class="roomTitle" id="roomTitle">Room</div>-->
+<!--                    </div>-->
+                    <div class="mb-0">
+                        <div class="messages" id="messages">
+                        </div>
+                    </div>
+                </div>
+            </div>
+<!---->
+            <div id="control_box" class="row control-box" style="padding-top: 5%; background-color: rgba(255,255,255,0); width: 100%;">
+                <div class="col-7 col-md-8 col-lg-9 d-flex justify-content-around align-items-center button-box">
+                    <div>
+                        <h2>
+                            <span class="roomName" style="color: rgba(4, 4, 4, 0.7);">Displayed name:</span>
+                            <strong class="ml-3">{{display_name}}</strong>
+                        </h2>
+                        <h2>
+                            <span class="roomName" style="color: rgba(4, 4, 4, 0.7);">Room name:</span>
+                            <strong class="ml-3">{{room_name}}</strong>
+                        </h2>
+                        <button id="copyLink" class="copyLink">Copy Link</button>
+                        <button id="showChat" class="showChat">Show Chat</button>
+                        <button id="downloadChatHistory" class="downloadChatHistory">Download Chat History</button>
+                    </div>
+                    <button id="btn_mute" class="btn btn-lg btn-outline-secondary rounded-circle">
+                        <span id="mute_icon" class="material-icons pt-2">
+                            mic
+                        </span>
+                    </button>
+                    <button id="btn_vid_mute"class="btn btn-lg btn-outline-secondary rounded-circle">
+                        <span id="vid_mute_icon" class="material-icons pt-2">
+                            videocam
+                        </span>
+                    </button>
+                    <button id="call_end" class="btn btn-lg btn-danger rounded-circle">
+                        <span class="material-icons pt-2">
+                            call_end
+                        </span>
+                    </button>
+                </div>
+                <div id="div_local_vid" class="col-5 col-md-4 col-lg-3 video-item ml-auto" style="background-color: rgba(255,255,255,0)">
+                    <div class="vid-wrapper" style="background-color: rgba(255,255,255,0)">
+                        <video id="local_vid" autoplay muted></video>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    let showChat = false
+    let chat = document.getElementById('chatContainer')
+    getParticipantsWithOtherLanguages()
+    chat.style.display = 'none'
+    document.getElementById('copyLink').addEventListener('click', () => {
+        navigator.clipboard.writeText(window.location.href)
+        .catch(err => {
+            console.log('Something went wrong', err)
+        })
+    })
+    document.getElementById('showChat').addEventListener('click', () => {
+        showChat = !showChat
+        if (showChat) {
+            chat.style.display = 'block'
+        } else {
+            chat.style.display = 'none'
+        }
+    })
+    document.getElementById('downloadChatHistory').addEventListener('click', () => {
+        downloadChatHistory(myRoomID, myID)
+    })
+
+</script>
+</html>
