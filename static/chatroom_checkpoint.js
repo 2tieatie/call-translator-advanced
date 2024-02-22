@@ -74,8 +74,9 @@ function startCamera()
         camera_allowed=true;
     })
     .catch((e)=>{
-        console.log("Error! Unable to start video! ", e);
-        document.getElementById("permission_alert").style.display = "block";
+        camera_allowed=true;
+        // console.log("Error! Unable to start video! ", e);
+        // document.getElementById("permission_alert").style.display = "block";
     });
 }
 
