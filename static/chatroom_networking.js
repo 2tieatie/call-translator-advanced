@@ -7,16 +7,6 @@ let socket = io(protocol + '//' + document.domain + ':' + location.port, {autoCo
 
 document.addEventListener("DOMContentLoaded", (event)=>{
     startCamera();
-    addMessage('asd', false, 'asd', 'asdas')
-    addMessage('asd', false, 'asd', 'asdas')
-    addMessage('asd', true, 'asd', 'asdas')
-    addMessage('asd', true, 'asd', 'asdas')
-    addMessage('asd', false, 'asd', 'asdas')
-    addMessage('asd', true, 'asd', 'asdas')
-    addMessage('asd', true, 'asd', 'asdas')
-    addMessage('asd', true, 'asd', 'asdas')
-
-
 });
 
 let camera_allowed=false;
@@ -37,6 +27,20 @@ let mediaConstraints = {
     } // ...and we want a video track
 };
 
+let mediaConstraintsAudio = {
+    audio: {
+        channels: 1,
+        autoGainControl: true,
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 44100,
+        bitrate: 256000,
+        // bitrate: 192,
+
+    },
+    video: false // ...and we want a video track
+};
+
 function startCamera()
 {
     navigator.mediaDevices.getUserMedia(mediaConstraints)
@@ -44,7 +48,7 @@ function startCamera()
         myVideo.srcObject = stream;
         // document.getElementById('myAudio').srcObject = stream;
         camera_allowed = true;
-        setAudioMuteState(audioMuted);                
+        setAudioMuteState(audioMuted);
         setVideoMuteState(videoMuted);
         console.log(stream)
         initAnalyser(stream)
@@ -53,7 +57,19 @@ function startCamera()
     })
     .catch((e)=>{
         console.log("getUserMedia Error! ", e);
-        alert("Error! Unable to access camera or mic! ");
+        navigator.mediaDevices.getUserMedia(mediaConstraintsAudio)
+        .then((stream)=>{
+            myVideo.srcObject = stream;
+            // document.getElementById('myAudio').srcObject = stream;
+            camera_allowed = true;
+            setAudioMuteState(audioMuted);
+            setVideoMuteState(videoMuted);
+            console.log(stream)
+            initAnalyser(stream)
+            //start the socketio connection
+            socket.connect();
+        })
+        // alert("Error! Unable to access camera or mic! ");
     });
 }
 
