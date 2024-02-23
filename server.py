@@ -22,7 +22,6 @@ _name_of_sid = {}
 rooms = []
 
 
-
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
@@ -87,7 +86,7 @@ def on_join_room(data):
         emit("user-list", {"my_id": sid})
     else:
         usrlist = {u_id:_name_of_sid[u_id] for u_id in _users_in_room[room_id]}
-        emit("user-list", {"list": usrlist, "my_id": sid})
+        emit("user-list", {"list": usrlist, "my_id": sid}, room=room_id)
         _users_in_room[room_id].append(sid)
 
     print("\nusers: ", _users_in_room, "\n")
@@ -186,7 +185,7 @@ def new_recording(data):
                     room.add_message(message)
 
         if translation_results:
-            socketio.emit('new_message', translation_results)
+            socketio.emit('new_message', translation_results, room=room_id)
 
 
 @app.route('/get_chat_history', methods=['GET'])
