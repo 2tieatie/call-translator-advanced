@@ -7,7 +7,7 @@ let socket = io(protocol + '//' + document.domain + ':' + location.port, {autoCo
 
 document.addEventListener("DOMContentLoaded", (event)=>{
     startCamera();
-    document.getElementById('myAudio').muted = true
+    document.getElementById('local_vid').muted = true
 });
 
 let camera_allowed=false;

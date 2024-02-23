@@ -36,7 +36,6 @@ def index():
     return render_template("home.html")
 
 
-
 @app.route("/room/<string:room_id>/")
 def enter_room(room_id):
     room = get_room_by_id(room_id=room_id, rooms=rooms)
