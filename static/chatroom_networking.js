@@ -8,18 +8,18 @@ let socket = io(protocol + '//' + document.domain + ':' + location.port, {autoCo
 document.addEventListener("DOMContentLoaded", (event)=>{
     startCamera();
     document.getElementById('local_vid').muted = true
-    // addMessage('Translated text', true, 'Misha', 'Original text')
-    // addMessage('Translated text', true, 'Misha', 'Original text')
-    // addMessage('Translated text', false, 'Misha', 'Original text')
-    // addMessage('Translated text', true, 'Misha', 'Original text')
-    // addMessage('Translated text', true, 'Misha', 'Original text')
-    // addMessage('Translated text', true, 'Misha', 'Original text')
-    // addMessage('Translated text', false, 'Misha', 'Original text')
-    // addMessage('Translated text', true, 'Misha', 'Original text')
-    // addMessage('Translated text', true, 'Misha', 'Original text')
-    // addMessage('Translated text', true, 'Misha', 'Original text')
-    // addMessage('Translated text', false, 'Misha', 'Original text')
-    // addMessage('Translated text', true, 'Misha', 'Original text')
+    addMessage('Translated text', true, 'Misha', 'Original text')
+    addMessage('Translated text', true, 'Misha', 'Original text')
+    addMessage('Translated text', false, 'Misha', 'Original text')
+    addMessage('Translated text', true, 'Misha', 'Original text')
+    addMessage('Translated text', true, 'Misha', 'Original text')
+    addMessage('Translated text', true, 'Misha', 'Original text')
+    addMessage('Translated text', false, 'Misha', 'Original text')
+    addMessage('Translated text', true, 'Misha', 'Original text')
+    addMessage('Translated text', true, 'Misha', 'Original text')
+    addMessage('Translated text', true, 'Misha', 'Original text')
+    addMessage('Translated text', false, 'Misha', 'Original text')
+    addMessage('Translated text', true, 'Misha', 'Original text')
 });
 
 let camera_allowed=false;
