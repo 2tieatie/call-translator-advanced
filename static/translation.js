@@ -62,8 +62,7 @@ function updateVolumeMeter() {
         lastChunks.splice(1, 1);
     }
     const avg = lastChunks.reduce((accumulator, currentValue) => accumulator + currentValue, 0) / lastChunks.length;
-    // console.log(avg)
-    if (averageVolume >= RAPID) {
+    if (averageVolume >= avg + RAPID) {
         outputted = false
         if (!aboveRapid) {
             if (!start) {

@@ -48,7 +48,7 @@ def get_chat_history(room: Room, user_id: str) -> str:
             message_data_str = f'From: {message.sender.username}\n'\
                                f'To: {message.receiver.username}\n'\
                                f'Original text ({message.sender.language}): {message.original_text}\n'\
-                               f'Translated text ({message.receiver.language}): {message.translated_text}'
+                               f'Translated text ({message.receiver.language}): {message.translated_text}\n'
             result += f'{'-' * 100}\n{message_data_str}'
     return result
 

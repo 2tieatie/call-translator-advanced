@@ -98,12 +98,16 @@
             console.log('Something went wrong', err)
         })
     })
-    document.getElementById('showChat').addEventListener('click', () => {
+    showChatButton = document.getElementById('showChat')
+    showChatButton.addEventListener('click', () => {
         showChat = !showChat
         if (showChat) {
             chat.style.display = 'block'
+            showChatButton.textContent = 'Close Chat'
         } else {
             chat.style.display = 'none'
+            showChatButton.textContent = 'Show Chat'
+
         }
     })
     document.getElementById('downloadChatHistory').addEventListener('click', () => {

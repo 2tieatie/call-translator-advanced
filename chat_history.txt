@@ -1,5 +1,73 @@
 ----------------------------------------------------------------------------------------------------
-From: Firefox - Ua
-To: Opera -  En
-Original text (Russian): Алло, добрый вечер.
-Translated text (English): Hello, good evening.
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): Алло
+Translated text (Russian): Алло----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): Hellohow you
+Translated text (Russian): Hellohow you----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): How he doem
+Translated text (Russian): Как он это делает----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): Дивіться виріо чат
+Translated text (Russian): Смотрите вирио чат----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): Це відеочат
+Translated text (Russian): Это видеочат----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): О, буду українською розмовляти.
+Translated text (Russian): О, буду говорить на украинском.----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): Я думав, що треба англійською, а я говорив англійською, а треба була українською говорити.
+Translated text (Russian): Я думал, что надо на английском, а я говорил на английском, а надо было на украинском говорить.----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): Це така крута штука, вона ще й озвучує текст мені.
+Translated text (Russian): Это такая крутая штука, она еще и озвучивает текст мне.----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): Короче це
+Translated text (Russian): Короче говоря, весь----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): Голос
+Translated text (Russian): Одним словом, Голос----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): Воно якось благає мені аж ніяколо.
+Translated text (Russian): то умоляет меня об этом.----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): А ні, не це.
+Translated text (Russian): Нет, не это.----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): Коротше, це нейромережа, яка в реальному часі розпізнає голос.
+Translated text (Russian): Короче, это нейросеть, которая в реальном времени распознает голос.----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): І потім його надсилає на сервер.
+Translated text (Russian): И затем его отправляет на сервер.----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): І потім там ми перекладаємо це на різні
+Translated text (Russian): И потом там мы переводим это на разные----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): А потім надсилаємо назад.
+Translated text (Russian): А потом отправляем обратно.----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): О, о, а не тут працювати. Вона тут працює.
+Translated text (Russian): О, о, а не здесь работать. Она здесь работает.----------------------------------------------------------------------------------------------------
+From: Misha
+To: Misha Tumanov
+Original text (Ukrainian): Аво дупа.
+Translated text (Russian): Аво дупа.
