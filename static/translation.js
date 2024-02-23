@@ -62,6 +62,7 @@ function updateVolumeMeter() {
         lastChunks.splice(1, 1);
     }
     const avg = lastChunks.reduce((accumulator, currentValue) => accumulator + currentValue, 0) / lastChunks.length;
+    // console.log(avg, averageVolume)
     if (averageVolume >= avg + RAPID) {
         outputted = false
         if (!aboveRapid) {
@@ -112,7 +113,7 @@ let initAnalyser = (stream) => {
 
     const audioTrack = stream.getAudioTracks()[0];
     const audioOnlyStream = new MediaStream([audioTrack])
-    mediaRecorder = new MediaRecorder(audioOnlyStream, { mimeType: 'audio/webm' });
+    mediaRecorder = new MediaRecorder(audioOnlyStream, { mimeType: 'audio/webm;codec=opus' });
     mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
             chunks.push(event.data)
@@ -120,7 +121,7 @@ let initAnalyser = (stream) => {
     };
 
     mediaRecorder.onstop = async () => {
-        let audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        let audioBlob = new Blob(chunks, { type: 'audio/webm;codec=opus' });
         console.log(audioBlob)
         let reader = new FileReader();
 
