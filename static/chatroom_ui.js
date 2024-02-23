@@ -47,19 +47,22 @@ function makeVideoElement(element_id, display_name)
 }
 
 function addVideoElement(element_id, display_name)
-{        
+{
+    removeVideoElement(element_id)
     document.getElementById("video_grid").appendChild(makeVideoElement(element_id, display_name));
     getParticipantsWithOtherLanguages()
 }
 function removeVideoElement(element_id)
-{    
+{
+    if (!document.getElementById("div_"+element_id)) {
+        return
+    }
     let v = getVideoObj(element_id);
     if(v.srcObject){
         v.srcObject.getTracks().forEach(track => track.stop());
     }
     v.removeAttribute("srcObject");
     v.removeAttribute("src");
-
     document.getElementById("div_"+element_id).remove();
 }
 
