@@ -132,7 +132,7 @@ let initAnalyser = (stream) => {
             audioContext.decodeAudioData(audioData, function(decodedData) {
                 let sampleRate = decodedData.sampleRate;
 
-                let startTime =(sampleRate * (lastRecordingTimeDelta / 1000)) - 2;
+                let startTime = (sampleRate * (lastRecordingTimeDelta / 1000)) - 2;
                 let trimmedAudioData = decodedData.getChannelData(0).slice(startTime);
 
                 let newBuffer = audioContext.createBuffer(1, trimmedAudioData.length, sampleRate);
@@ -208,7 +208,7 @@ function bufferToWave(abuffer) {
         offset += 2;
     }
 
-    return new Blob([buffer], {type: "audio/wav"});
+    return new Blob([buffer], {type: "audio/webm"});
 
     function setUint16(data) {
         view.setUint16(offset, data, true);
