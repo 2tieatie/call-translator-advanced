@@ -1,31 +1,13 @@
-let dataArray, analyser, stream, remoteStreamSrc
-const RAPID = 3 // ПОРОГ ГРОМКОСТИ В Дб ПРИ КОТОРОМ НАЧИНАТЬ ЗАПИСЬ
+let dataArray, analyser
 let mediaRecorder
 let lastRecording = new Date().getTime()
 let chunks = []
 let lastRecordingTimeDelta
-let aboveRapid = false
-let lastAboveRapid = new Date().getTime()
 const gap = 750 // ДЛИНА ТИШИНЫ (В мс), ПРИ КОТОРОЙ ОСТАНАВЛИВАТЬ ЗАПИСЬ
-let recorded = false
-let recordingStartTime = 0
-let silenceDuration = gap
-let outputted = false
-let start = false
-const minTime = -100
-const errLoss = 40
-const audioQueue = []
-let currentAudioIndex = 0
-let audioElement
-let isPlaying = false;
-let filter, compressor, mediaStreamSource;
 let msg = new SpeechSynthesisUtterance();
 msg.rate = 1;
 msg.pitch = 1;
-let startedRecording = new Date().getTime()
 let startedSpeaking
-let lastChunks = []
-const MAXL = 100
 let recording = false
 let started = false
 
@@ -54,65 +36,15 @@ socket.on('new_message', (data) => {
     }
 })
 
-function updateVolumeMeter() {
-    analyser.getByteFrequencyData(dataArray)
-    const averageVolume = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length
-    // console.log(new Date().getTime() - lastRecording)
-    // console.log(averageVolume)
-    // lastChunks.push(averageVolume)
-    // if (lastChunks.length >= MAXL) {
-    //     lastChunks.splice(1, 1);
-    // }
-    // const avg = lastChunks.reduce((accumulator, currentValue) => accumulator + currentValue, 0) / lastChunks.length;
-    // console.log(avg, averageVolume)
-    if (averageVolume >= RAPID) {
-        outputted = false
-        if (!aboveRapid) {
-            if (!start) {
-                // console.log(('Started recording. Volume: '), averageVolume)
-                // НАЧАТЬ ЗАПИСЬ
-                lastRecordingTimeDelta = new Date().getTime() - lastRecording
-                startedSpeaking = new Date().getTime()
-            }
-            lastAboveRapid = new Date().getTime()
-            aboveRapid = true
-            start = true
-            if (silenceDuration > gap) {
-                recordingStartTime = new Date().getTime()
-            }
-        }
-    } else {
-        aboveRapid = false
-        silenceDuration = new Date().getTime() - lastAboveRapid
-        if (silenceDuration > gap && !outputted) {
-            // console.log(('Stop recording: (volume, duration)'), averageVolume, new Date().getTime() - recordingStartTime)
-            lastRecording = new Date().getTime()
-            mediaRecorder.stop()
-            mediaRecorder.start();
-            outputted = true
-            start = false
-        }
-    }
-}
-
 let initAnalyser = (stream) => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)()
     analyser = audioContext.createAnalyser();
-    const noiseSuppression = audioContext.createDynamicsCompressor()
-    noiseSuppression.threshold.value = 0 // УРОВЕНЬ ШУМОИЗОЛЯЦИИ, (ОТ -100 до 0)
     analyser.fftSize = 256;
     const source = audioContext.createMediaStreamSource(stream);
     source.connect(analyser);
-
     const audioElement = new Audio();
     audioElement.srcObject = stream;
-
-    const audioSource = audioContext.createMediaElementSource(audioElement)
-    // audioSource.connect(noiseSuppression);
     dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-    // setInterval(updateVolumeMeter, 0);
-
     const audioTrack = stream.getAudioTracks()[0];
     const audioOnlyStream = new MediaStream([audioTrack])
     mediaRecorder = new MediaRecorder(audioOnlyStream, { mimeType: 'audio/webm;codec=opus' });
@@ -124,11 +56,7 @@ let initAnalyser = (stream) => {
     startVAD(analyser)
     mediaRecorder.onstop = async () => {
         let audioBlob = new Blob(chunks, { type: 'audio/webm;codec=opus' });
-        console.log(audioBlob)
-        // lastRecordingTimeDelta = 99999
-        // socket.emit('new_recording', { audio: audioBlob, room_id: myRoomID, last_recording: lastRecordingTimeDelta });
-
-        console.log(audioBlob)
+        console.log('Original: ', audioBlob)
         let reader = new FileReader();
 
         reader.onload = function(event) {
@@ -137,37 +65,21 @@ let initAnalyser = (stream) => {
 
             audioContext.decodeAudioData(audioData, function(decodedData) {
                 let sampleRate = decodedData.sampleRate;
-
-                let startTime = lastRecordingTimeDelta / 1000 - 2; // convert to seconds
-                console.log(startTime);
+                let startTime = lastRecordingTimeDelta / 1000 - 2;
                 let startFrame = 0
                 if (startTime > 0) {
                     startFrame = Math.floor(startTime * sampleRate);
                 }
-                // Calculate the start frame based on startTime and sample rate
-
-                console.log(startFrame, decodedData.getChannelData(0).length);
-
-                // Trim the audio data using startFrame
                 let trimmedAudioData = decodedData.getChannelData(0).slice(startFrame);
-
                 let newBuffer = audioContext.createBuffer(1, trimmedAudioData.length, sampleRate);
                 newBuffer.copyToChannel(trimmedAudioData, 0);
-
                 let audioBlobTrimmed = bufferToWave(newBuffer);
-                // console.log('Обрезанный Blob:', audioBlobTrimmed);
                 socket.emit('new_recording', { audio: audioBlobTrimmed, room_id: myRoomID, last_recording: lastRecordingTimeDelta });
             });
         };
-
         reader.readAsArrayBuffer(audioBlob);
-        // socket.emit('new_recording', { audio: audioBlob, room_id: myRoomID, last_recording: lastRecordingTimeDelta });
-
         chunks = [];
     };
-
-
-
 }
 
 let getParticipantsWithOtherLanguages = () => {
@@ -249,40 +161,37 @@ function downloadChatHistory(room_id, user_id) {
 
 
 function startVAD(analyser) {
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        function detectVoiceActivity() {
-            analyser.getByteTimeDomainData(dataArray);
-            const avgAmplitude = dataArray.reduce((acc, val) => acc + val, 0) / bufferLength;
-            const threshold = 128;
-            const isVoiceActive = avgAmplitude > threshold;
-            if (isVoiceActive) {
-                if (!recording) {
-                    recording = true
-                    console.log('Voice is active');
-                    startedSpeaking = new Date().getTime()
-                }
-
-
-
-            } else {
-                if (new Date().getTime() - startedSpeaking > gap) {
-                    if (recording) {
-                        console.log('Voice is inactive')
-                        lastRecordingTimeDelta = new Date().getTime() - lastRecording
-                        if (started) {
-                            mediaRecorder.stop()
-                        }
-                        recording = false
-                        mediaRecorder.start();
-                        lastRecording = new Date().getTime()
-                        if (!started) {
-                            started = true
-                        }
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    function detectVoiceActivity() {
+        analyser.getByteTimeDomainData(dataArray);
+        const avgAmplitude = dataArray.reduce((acc, val) => acc + val, 0) / bufferLength;
+        const threshold = 128;
+        const isVoiceActive = avgAmplitude > threshold;
+        if (isVoiceActive) {
+            if (!recording) {
+                recording = true
+                console.log('Voice is active');
+                startedSpeaking = new Date().getTime()
+            }
+        } else {
+            if (new Date().getTime() - startedSpeaking > gap) {
+                if (recording) {
+                    console.log('Voice is inactive')
+                    lastRecordingTimeDelta = new Date().getTime() - lastRecording
+                    if (started) {
+                        mediaRecorder.stop()
+                    }
+                    recording = false
+                    mediaRecorder.start();
+                    lastRecording = new Date().getTime()
+                    if (!started) {
+                        started = true
                     }
                 }
             }
-            requestAnimationFrame(detectVoiceActivity);
         }
-        detectVoiceActivity()
+        requestAnimationFrame(detectVoiceActivity);
+    }
+    detectVoiceActivity()
 }

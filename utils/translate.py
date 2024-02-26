@@ -30,8 +30,8 @@ class Translator:
     @classmethod
     def recognize_speech(cls, audio_bytes, language: str) -> dict[str, str]:
         audio_data = BytesIO(audio_bytes)
-        # with open(f'utils/recordings/{time.time()}.webm', 'wb') as file:
-        #     file.write(audio_data.getvalue())
+        with open(f'utils/recordings/{time.time()}.webm', 'wb') as file:
+            file.write(audio_data.getvalue())
         # audio_segment = AudioSegment.from_file(audio_data.getvalue(), format=cls.MIMETYPE)
         # if audio_segment.channels > 1:
         #     audio_bytes = audio_segment.set_channels(1)
