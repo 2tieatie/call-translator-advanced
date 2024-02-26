@@ -30,8 +30,8 @@ let mediaConstraints = {
         echoCancellation: true,
         noiseSuppression: true,
         sampleRate: 44100,
-        bitrate: 256000,
-        // bitrate: 192,
+        // bitrate: 256000,
+        bitrate: 192,
 
     },
     video: {

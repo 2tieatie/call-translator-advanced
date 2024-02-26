@@ -26,6 +26,8 @@ let startedRecording = new Date().getTime()
 let startedSpeaking
 let lastChunks = []
 const MAXL = 100
+let recording = false
+let started = false
 
 let handleNewMessage = (local, translated_text, name, original_text) => {
     addMessage(translated_text, local, name, original_text)
@@ -57,17 +59,17 @@ function updateVolumeMeter() {
     const averageVolume = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length
     // console.log(new Date().getTime() - lastRecording)
     // console.log(averageVolume)
-    lastChunks.push(averageVolume)
-    if (lastChunks.length >= MAXL) {
-        lastChunks.splice(1, 1);
-    }
-    const avg = lastChunks.reduce((accumulator, currentValue) => accumulator + currentValue, 0) / lastChunks.length;
+    // lastChunks.push(averageVolume)
+    // if (lastChunks.length >= MAXL) {
+    //     lastChunks.splice(1, 1);
+    // }
+    // const avg = lastChunks.reduce((accumulator, currentValue) => accumulator + currentValue, 0) / lastChunks.length;
     // console.log(avg, averageVolume)
-    if (averageVolume >= avg + RAPID) {
+    if (averageVolume >= RAPID) {
         outputted = false
         if (!aboveRapid) {
             if (!start) {
-                console.log(('Started recording. Volume: '), averageVolume)
+                // console.log(('Started recording. Volume: '), averageVolume)
                 // НАЧАТЬ ЗАПИСЬ
                 lastRecordingTimeDelta = new Date().getTime() - lastRecording
                 startedSpeaking = new Date().getTime()
@@ -83,12 +85,12 @@ function updateVolumeMeter() {
         aboveRapid = false
         silenceDuration = new Date().getTime() - lastAboveRapid
         if (silenceDuration > gap && !outputted) {
-            console.log(('Stop recording: (volume, duration)'), averageVolume, new Date().getTime() - recordingStartTime)
+            // console.log(('Stop recording: (volume, duration)'), averageVolume, new Date().getTime() - recordingStartTime)
+            lastRecording = new Date().getTime()
             mediaRecorder.stop()
             mediaRecorder.start();
             outputted = true
             start = false
-            lastRecording = new Date().getTime()
         }
     }
 }
@@ -109,7 +111,7 @@ let initAnalyser = (stream) => {
     // audioSource.connect(noiseSuppression);
     dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-    setInterval(updateVolumeMeter, 0);
+    // setInterval(updateVolumeMeter, 0);
 
     const audioTrack = stream.getAudioTracks()[0];
     const audioOnlyStream = new MediaStream([audioTrack])
@@ -119,9 +121,13 @@ let initAnalyser = (stream) => {
             chunks.push(event.data)
         }
     };
-
+    startVAD(analyser)
     mediaRecorder.onstop = async () => {
         let audioBlob = new Blob(chunks, { type: 'audio/webm;codec=opus' });
+        console.log(audioBlob)
+        // lastRecordingTimeDelta = 99999
+        // socket.emit('new_recording', { audio: audioBlob, room_id: myRoomID, last_recording: lastRecordingTimeDelta });
+
         console.log(audioBlob)
         let reader = new FileReader();
 
@@ -132,14 +138,24 @@ let initAnalyser = (stream) => {
             audioContext.decodeAudioData(audioData, function(decodedData) {
                 let sampleRate = decodedData.sampleRate;
 
-                let startTime = (sampleRate * (lastRecordingTimeDelta / 1000)) - 2;
-                let trimmedAudioData = decodedData.getChannelData(0).slice(startTime);
+                let startTime = lastRecordingTimeDelta / 1000 - 2; // convert to seconds
+                console.log(startTime);
+                let startFrame = 0
+                if (startTime > 0) {
+                    startFrame = Math.floor(startTime * sampleRate);
+                }
+                // Calculate the start frame based on startTime and sample rate
+
+                console.log(startFrame, decodedData.getChannelData(0).length);
+
+                // Trim the audio data using startFrame
+                let trimmedAudioData = decodedData.getChannelData(0).slice(startFrame);
 
                 let newBuffer = audioContext.createBuffer(1, trimmedAudioData.length, sampleRate);
                 newBuffer.copyToChannel(trimmedAudioData, 0);
 
                 let audioBlobTrimmed = bufferToWave(newBuffer);
-                console.log('Обрезанный Blob:', audioBlobTrimmed);
+                // console.log('Обрезанный Blob:', audioBlobTrimmed);
                 socket.emit('new_recording', { audio: audioBlobTrimmed, room_id: myRoomID, last_recording: lastRecordingTimeDelta });
             });
         };
@@ -208,7 +224,7 @@ function bufferToWave(abuffer) {
         offset += 2;
     }
 
-    return new Blob([buffer], {type: "audio/webm"});
+    return new Blob([buffer], {type: "audio/webm;codec=opus"});
 
     function setUint16(data) {
         view.setUint16(offset, data, true);
@@ -229,4 +245,44 @@ function downloadChatHistory(room_id, user_id) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+
+function startVAD(analyser) {
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        function detectVoiceActivity() {
+            analyser.getByteTimeDomainData(dataArray);
+            const avgAmplitude = dataArray.reduce((acc, val) => acc + val, 0) / bufferLength;
+            const threshold = 128;
+            const isVoiceActive = avgAmplitude > threshold;
+            if (isVoiceActive) {
+                if (!recording) {
+                    recording = true
+                    console.log('Voice is active');
+                    startedSpeaking = new Date().getTime()
+                }
+
+
+
+            } else {
+                if (new Date().getTime() - startedSpeaking > gap) {
+                    if (recording) {
+                        console.log('Voice is inactive')
+                        lastRecordingTimeDelta = new Date().getTime() - lastRecording
+                        if (started) {
+                            mediaRecorder.stop()
+                        }
+                        recording = false
+                        mediaRecorder.start();
+                        lastRecording = new Date().getTime()
+                        if (!started) {
+                            started = true
+                        }
+                    }
+                }
+            }
+            requestAnimationFrame(detectVoiceActivity);
+        }
+        detectVoiceActivity()
 }
