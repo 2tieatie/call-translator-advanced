@@ -3,7 +3,7 @@ let mediaRecorder
 let lastRecording = new Date().getTime()
 let chunks = []
 let lastRecordingTimeDelta
-const gap = 750 // ДЛИНА ТИШИНЫ (В мс), ПРИ КОТОРОЙ ОСТАНАВЛИВАТЬ ЗАПИСЬ
+const gap = 1000 // ДЛИНА ТИШИНЫ (В мс), ПРИ КОТОРОЙ ОСТАНАВЛИВАТЬ ЗАПИСЬ
 let msg = new SpeechSynthesisUtterance();
 msg.rate = 1;
 msg.pitch = 1;
@@ -163,35 +163,37 @@ function downloadChatHistory(room_id, user_id) {
 function startVAD(analyser) {
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
+    let lastSpeaking
+        mediaRecorder.start();
+
     function detectVoiceActivity() {
         analyser.getByteTimeDomainData(dataArray);
         const avgAmplitude = dataArray.reduce((acc, val) => acc + val, 0) / bufferLength;
         const threshold = 128;
         const isVoiceActive = avgAmplitude > threshold;
+        // console.log(new Date().getTime() - lastSpeaking)
         if (isVoiceActive) {
             if (!recording) {
-                recording = true
-                console.log('Voice is active');
                 startedSpeaking = new Date().getTime()
             }
+            recording = true
+            console.log('Voice is active');
+            lastSpeaking = new Date().getTime()
+            // console.log(startedSpeaking - lastRecording)
+
         } else {
-            if (new Date().getTime() - startedSpeaking > gap) {
-                if (recording) {
-                    console.log('Voice is inactive')
-                    lastRecordingTimeDelta = new Date().getTime() - lastRecording
-                    if (started) {
-                        mediaRecorder.stop()
-                    }
-                    recording = false
-                    mediaRecorder.start();
-                    lastRecording = new Date().getTime()
-                    if (!started) {
-                        started = true
-                    }
-                }
+            if (new Date().getTime() - lastSpeaking > gap && recording) {
+                // console.log(new Date().getTime() - lastSpeaking)
+                console.log('Voice is inactive')
+                lastRecordingTimeDelta = startedSpeaking - lastRecording
+                mediaRecorder.stop()
+                recording = false
+                mediaRecorder.start();
+                lastRecording = new Date().getTime()
             }
         }
         requestAnimationFrame(detectVoiceActivity);
     }
     detectVoiceActivity()
 }
+

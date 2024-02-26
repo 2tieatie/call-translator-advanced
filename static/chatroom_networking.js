@@ -25,8 +25,8 @@ document.addEventListener("DOMContentLoaded", (event)=>{
 let camera_allowed=false;
 let mediaConstraints = {
     audio: {
-        channels: 2,
-        // autoGainControl: true,
+        channels: 1,
+        autoGainControl: true,
         echoCancellation: true,
         noiseSuppression: true,
         sampleRate: 44100,
