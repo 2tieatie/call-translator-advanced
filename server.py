@@ -1,3 +1,5 @@
+import struct
+
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from languages.get_languages import languages, names, get_language
@@ -11,8 +13,8 @@ Payload.max_decode_packets = 200
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "thisismys3cr3tk3y"
-
-socketio = SocketIO(app)
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
+socketio = SocketIO(app, max_http_buffer_size=500 * 1024 * 1024)
 
 
 _users_in_room = {}
@@ -149,11 +151,23 @@ def get_languages():
 
 @socketio.on("new_recording")
 def new_recording(data):
+# @app.route('/new_recording', methods=['POST'])
+# def new_recording():
+    print('received message signal', request.sid)
+
     user_id = request.sid
+#     room_id = request.form['room_id']
+#     audio_blob = request.form['audio']
+#     last_recording = request.form['last_recording']
+#     user_id = 'aasd'
+#     print(audio_blob, type(audio_blob))
+
     room_id = data['room_id']
     audio_blob = data['audio']
-    time_from_last_recording = data['last_recording'] / 1000
+    last_recording = data['last_recording']
+    time_from_last_recording = last_recording / 1000
     last_message = None
+    print('got data', request.sid)
     if time_from_last_recording <= MAX_MESSAGES_GAP:
         last_message = get_last_message_by_user_id(room_id=room_id, user_id=user_id, rooms=rooms)
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
