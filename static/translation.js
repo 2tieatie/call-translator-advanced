@@ -47,7 +47,7 @@ let initAnalyser = (stream) => {
     dataArray = new Uint8Array(analyser.frequencyBinCount);
     const audioTrack = stream.getAudioTracks()[0];
     const audioOnlyStream = new MediaStream([audioTrack])
-    mediaRecorder = new MediaRecorder(audioOnlyStream, { mimeType: 'audio/webm;codec=opus' });
+    mediaRecorder = new MediaRecorder(audioOnlyStream, { mimeType: 'audio/webm;' });
     mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
             chunks.push(event.data)
@@ -55,7 +55,7 @@ let initAnalyser = (stream) => {
     };
     startVAD(analyser)
     mediaRecorder.onstop = async () => {
-        let audioBlob = new Blob(chunks, { type: 'audio/webm;codec=opus' });
+        let audioBlob = new Blob(chunks, { type: 'audio/webm;' });
         console.log('Original: ', audioBlob)
         let reader = new FileReader();
 
@@ -64,17 +64,14 @@ let initAnalyser = (stream) => {
             let audioContext = new AudioContext();
 
             audioContext.decodeAudioData(audioData, function(decodedData) {
-                let sampleRate = decodedData.sampleRate;
-                let startTime = lastRecordingTimeDelta / 1000 - 2;
+                let sampleRate = 44100;
+                let startTime = lastRecordingTimeDelta / 1000 - 1;
                 let startFrame = 0
                 if (startTime > 0) {
                     startFrame = Math.floor(startTime * sampleRate);
                 }
                 let trimmedAudioData = decodedData.getChannelData(0).slice(startFrame);
-                let newBuffer = audioContext.createBuffer(1, trimmedAudioData.length, sampleRate);
-                newBuffer.copyToChannel(trimmedAudioData, 0);
-                let audioBlobTrimmed = bufferToWave(newBuffer);
-                socket.emit('new_recording', { audio: audioBlobTrimmed, room_id: myRoomID, last_recording: lastRecordingTimeDelta });
+                socket.emit('new_recording', { audio: trimmedAudioData, room_id: myRoomID, last_recording: lastRecordingTimeDelta });
             });
         };
         reader.readAsArrayBuffer(audioBlob);
@@ -105,48 +102,6 @@ let unmuteAll = (with_other_languages) => {
         const vid_element = document.getElementById(`vid_${id}`)
         vid_element.muted = true
     })
-}
-function bufferToWave(abuffer) {
-    let numberOfChannels = abuffer.numberOfChannels,
-        length = abuffer.length,
-        sampleRate = abuffer.sampleRate,
-        interleaved = abuffer.getChannelData(0),
-        buffer = new ArrayBuffer(44 + interleaved.length * 2),
-        view = new DataView(buffer),
-        channels = [], i, sample, offset = 0, dataLength = interleaved.length * 2;
-
-    setUint32(0x46464952);
-    setUint32(36 + dataLength);
-    setUint32(0x45564157);
-    setUint32(0x20746d66);
-    setUint32(16);
-    setUint16(1);
-    setUint16(numberOfChannels);
-    setUint32(sampleRate);
-    setUint32(sampleRate * 2 * numberOfChannels);
-    setUint16(numberOfChannels * 2);
-    setUint16(16);
-    setUint32(0x61746164);
-    setUint32(dataLength);
-
-    for(i = 0; i < interleaved.length; i++){
-        sample = Math.max(-1, Math.min(1, interleaved[i]));
-        sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0;
-        view.setInt16(offset, sample, true);
-        offset += 2;
-    }
-
-    return new Blob([buffer], {type: "audio/webm;codec=opus"});
-
-    function setUint16(data) {
-        view.setUint16(offset, data, true);
-        offset += 2;
-    }
-
-    function setUint32(data) {
-        view.setUint32(offset, data, true);
-        offset += 4;
-    }
 }
 
 function downloadChatHistory(room_id, user_id) {
@@ -197,3 +152,12 @@ function startVAD(analyser) {
     detectVoiceActivity()
 }
 
+let saveFile =  (file, filename) => {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+}

@@ -171,7 +171,7 @@ def new_recording(data):
     data = Translator.recognize_speech(audio_bytes=audio_blob, language=deepgram_language_sender)
     if data['status'] == 'succeeded':
         if last_message:
-            data['text'] = f'{last_message.original_text} -  {data['text']}'
+            data['text'] = f'{last_message.original_text} -  {data["text"]}'
         print(data)
         for receiver in receivers_languages.keys():
             if receiver.language != sender.language:
