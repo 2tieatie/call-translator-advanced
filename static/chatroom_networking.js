@@ -236,7 +236,14 @@ function handleOfferMsg(msg)
     _peer_list[peer_id].setRemoteDescription(desc)
     .then(()=>{
         let local_stream = myVideo.srcObject;
-        local_stream.getTracks().forEach((track)=>{_peer_list[peer_id].addTrack(track, local_stream);});
+        local_stream.getTracks().forEach((track)=>{
+            try {
+                _peer_list[peer_id].addTrack(track, local_stream);
+
+            } catch (error) {
+                console.log(error)
+            }
+        });
     })
     .then(()=>{return _peer_list[peer_id].createAnswer();})
     .then((answer)=>{return _peer_list[peer_id].setLocalDescription(answer);})
