@@ -54,9 +54,10 @@ document.addEventListener("DOMContentLoaded", (event)=>{
 let camera_allowed=false;
 let mediaConstraints = {
     audio: true,
-    video: {
-        height: 360
-    } 
+    video: true
+    //     {
+        // height: 360
+    // }
 };
 
 function validate()

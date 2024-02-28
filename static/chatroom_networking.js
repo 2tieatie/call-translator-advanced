@@ -34,15 +34,15 @@ let mediaConstraints = {
         bitrate: 192,
 
     },
-    video: {
-        height: 360,
-
-    } // ...and we want a video track
+    video: true
+    //     {
+        // height: 360,
+    // }
 };
 
 let mediaConstraintsAudio = {
     audio: {
-        channels: 2,
+        channels: 1,
         autoGainControl: true,
         echoCancellation: true,
         noiseSuppression: true,
