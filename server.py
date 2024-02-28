@@ -114,7 +114,6 @@ def on_disconnect():
         room = get_room_by_id(room_id=room_id, rooms=rooms)
         if room:
             room.remove_participant(participant=participant)
-
     print("\nusers: ", _users_in_room, "\n")
 
 
@@ -151,23 +150,12 @@ def get_languages():
 
 @socketio.on("new_recording")
 def new_recording(data):
-# @app.route('/new_recording', methods=['POST'])
-# def new_recording():
-    print('received message signal', request.sid)
-
     user_id = request.sid
-#     room_id = request.form['room_id']
-#     audio_blob = request.form['audio']
-#     last_recording = request.form['last_recording']
-#     user_id = 'aasd'
-#     print(audio_blob, type(audio_blob))
-
     room_id = data['room_id']
     audio_blob = data['audio']
     last_recording = data['last_recording']
     time_from_last_recording = last_recording / 1000
     last_message = None
-    print('got data', request.sid)
     if time_from_last_recording <= MAX_MESSAGES_GAP:
         last_message = get_last_message_by_user_id(room_id=room_id, user_id=user_id, rooms=rooms)
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)

@@ -47,7 +47,7 @@ let mediaConstraintsAudio = {
         echoCancellation: true,
         noiseSuppression: true,
         sampleRate: 44100,
-        bitrate: 256000,
+        bitrate: 32000,
         // bitrate: 192,
 
     },

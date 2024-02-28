@@ -79,7 +79,6 @@ let initAnalyser = (stream) => {
                 console.log(lastRecordingTimeDelta)
                 socket.emit('new_recording', { audio: trimmedAudioData, room_id: myRoomID, last_recording: lastRecordingTimeDelta });
             });
-
         };
         reader.readAsArrayBuffer(audioBlob);
         chunks = [];
