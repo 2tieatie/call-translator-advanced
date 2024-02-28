@@ -35,7 +35,7 @@ let mediaConstraints = {
 
     },
     video: {
-        height: 1080,
+        height: 360,
 
     } // ...and we want a video track
 };
