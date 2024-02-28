@@ -33,6 +33,7 @@ function makeVideoElement(element_id, display_name)
 
     wrapper_div.className = "remoteVideo video-item";
     vid_wrapper.className = "vid-wrapper";
+    vid_wrapper.id = "vidwr_"+element_id;
     name_text.className = "display-name";
     wrapper_div.style.backgroundColor = "rgba(102, 177, 244, 0)"
     vid_wrapper.style.backgroundColor = "rgba(255, 255, 255, 0)"

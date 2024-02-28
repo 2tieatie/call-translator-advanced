@@ -20,6 +20,7 @@
         var videoMuted = "{{mute_video}}"=="1";
         console.log(">> {{mute_audio}}, {{mute_video}}", audioMuted, videoMuted);
     </script>
+    <script src="{{url_for('static', filename='queue.js')}}"></script>
     <script src="{{url_for('static', filename='chatroom_ui.js')}}"></script>
     <script src="{{url_for('static', filename='chatroom_networking.js')}}"></script>
     <script src="{{url_for('static', filename='translation.js')}}"></script>

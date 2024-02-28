@@ -10,7 +10,10 @@ msg.pitch = 1;
 let startedSpeaking
 let recording = false
 let started = false
+let shadows = new Queue()
 
+
+let t
 let handleNewMessage = (local, translated_text, name, original_text) => {
     addMessage(translated_text, local, name, original_text)
 }
@@ -25,14 +28,16 @@ socket.on('new_message', (data) => {
         return
     }
     let d = data[myID]
+    console.log(d)
     handleNewMessage(false, d.translated_text, d.name, d.original_text)
     if ('speechSynthesis' in window) {
         msg.text = d.translated_text
         msg.lang = d.gtts_language
         window.speechSynthesis.speak(msg);
-        console.log(d)
+        const element = document.getElementById('vid_' + data.sender)
+        shadows.enqueue(element)
     } else {
-        console.log('Web Speech API не поддерживается в этом браузере.');
+        console.log('Web Speech API does not support in this browser.');
     }
 })
 
@@ -95,14 +100,14 @@ let muteOthers = (with_other_languages) => {
     console.log(with_other_languages)
     with_other_languages.forEach((id) => {
         const vid_element = document.getElementById(`vid_${id}`)
-        vid_element.muted = true
+        vid_element.volume = 0.5
     })
 }
 
 let unmuteAll = (with_other_languages) => {
     with_other_languages.forEach((id) => {
         const vid_element = document.getElementById(`vid_${id}`)
-        vid_element.muted = true
+        vid_element.muted = false
     })
 }
 
@@ -161,3 +166,18 @@ let saveFile =  (file, filename) => {
     a.click();
     window.URL.revokeObjectURL(url);
 }
+
+
+msg.onstart = function (event) {
+    console.log(shadows)
+    shadows.front().style.boxShadow = "0 0 20px 5px #faaf3f";
+};
+
+msg.onend = function (event) {
+    shadows.front().style.boxShadow = "none"
+    shadows.dequeue()
+};
+
+
+
+

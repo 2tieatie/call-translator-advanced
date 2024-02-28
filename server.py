@@ -199,6 +199,7 @@ def new_recording(data):
                     room.add_message(message)
 
         if translation_results:
+            translation_results['sender'] = sender.user_id
             socketio.emit('new_message', translation_results, room=room_id)
 
 
