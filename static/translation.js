@@ -100,7 +100,7 @@ let muteOthers = (with_other_languages) => {
     console.log(with_other_languages)
     with_other_languages.forEach((id) => {
         const vid_element = document.getElementById(`vid_${id}`)
-        vid_element.volume = 0.5
+        vid_element.volume = 0.1
     })
 }
 
