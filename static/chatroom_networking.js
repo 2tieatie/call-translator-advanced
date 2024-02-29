@@ -30,14 +30,10 @@ let mediaConstraints = {
         echoCancellation: true,
         noiseSuppression: true,
         sampleRate: 44100,
-        // bitrate: 256000,
-        bitrate: 192,
+        bitrate: 32000,
 
     },
     video: true
-    //     {
-        // height: 360,
-    // }
 };
 
 let mediaConstraintsAudio = {
@@ -48,10 +44,9 @@ let mediaConstraintsAudio = {
         noiseSuppression: true,
         sampleRate: 44100,
         bitrate: 32000,
-        // bitrate: 192,
 
     },
-    video: false // ...and we want a video track
+    video: false
 };
 
 function startCamera()
@@ -59,13 +54,11 @@ function startCamera()
     navigator.mediaDevices.getUserMedia(mediaConstraints)
     .then((stream)=>{
         myVideo.srcObject = stream;
-        // document.getElementById('myAudio').srcObject = stream;
         camera_allowed = true;
         setAudioMuteState(audioMuted);
         setVideoMuteState(videoMuted);
         console.log(stream)
         initAnalyser(stream)
-        //start the socketio connection
         socket.connect();
     })
     .catch((e)=>{
@@ -73,16 +66,13 @@ function startCamera()
         navigator.mediaDevices.getUserMedia(mediaConstraintsAudio)
         .then((stream)=>{
             myVideo.srcObject = stream;
-            // document.getElementById('myAudio').srcObject = stream;
             camera_allowed = true;
             setAudioMuteState(audioMuted);
             setVideoMuteState(videoMuted);
             console.log(stream)
             initAnalyser(stream)
-            //start the socketio connection
             socket.connect();
         })
-        // alert("Error! Unable to access camera or mic! ");
     });
 }
 
