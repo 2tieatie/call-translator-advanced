@@ -1,4 +1,6 @@
+import asyncio
 import io
+import sys
 import time
 import wave
 from io import BytesIO
@@ -11,6 +13,8 @@ from dotenv import load_dotenv
 from gtts import gTTS
 from deepgram import DeepgramClient, DeepgramClientOptions, PrerecordedOptions
 from pydub import AudioSegment
+
+from models.models import Participant
 
 
 def load_env():
@@ -34,10 +38,12 @@ class Translator:
         language='ru',
         filler_words=False,
     )
+    deepl_translator = deepl.Translator(DEEPL_TOKEN)
 
     @classmethod
-    def recognize_speech(cls, audio_bytes, language: str) -> dict[str, str]:
+    def recognize_speech(cls, audio_bytes, language: str, first_checkpoint: int) -> dict[str, str]:
         audio_data = decode_audio_to_webm(audio_bytes)
+        print(f"{'Decoded audio': >35}", time.time() - first_checkpoint)
         # with open(f'utils/recordings/{time.time()}.webm', 'wb') as file:
         #     file.write(audio_data)
         # audio_segment = AudioSegment.from_file(audio_data.getvalue(), format=cls.MIMETYPE)
@@ -65,24 +71,16 @@ class Translator:
             }
 
     @classmethod
-    def translate(cls, data: dict[str, str], deepl_language: str) -> object:
-        status = data['status']
+    async def translate(cls, status: str, text: str, deepl_language: str, receiver: Participant) -> object:
         if status != 'succeeded':
             return {'status': 'error'}
 
-        if not data['text']:
-            return {'status': 'empty text'}
-
-        text = data['text']
         if not text:
             return {'status': 'empty text'}
-
-        result = deepl.Translator(cls.DEEPL_TOKEN) \
-            .translate_text(
-            text=text, target_lang=deepl_language
-        )
+        translator = deepl.Translator(cls.DEEPL_TOKEN)
+        result = await asyncio.to_thread(translator.translate_text, text=text, target_lang=deepl_language)
         return {'status': 'success', 'original_text': text.split('-')[-1].strip(),
-                'translated_text': result.text.split('-')[-1].strip()}
+                'translated_text': result.text.split('-')[-1].strip(), 'receiver': receiver}
 
     @classmethod
     def make_audio(cls, text: str, language='en'):
@@ -104,7 +102,7 @@ def decode_audio_to_webm(audio_data, sample_rate=48000, channels=1):
     )
     webm_data = io.BytesIO()
     audio_segment.export(webm_data, format='webm')
-
+    print(f"{'Audio bytes size:': <35}", sys.getsizeof(webm_data), "bytes")
     return webm_data.getvalue()
 # import datetime
 # import time

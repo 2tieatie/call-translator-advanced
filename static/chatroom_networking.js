@@ -42,8 +42,8 @@ let mediaConstraintsAudio = {
         autoGainControl: true,
         echoCancellation: true,
         noiseSuppression: true,
-        sampleRate: 44100,
-        bitrate: 32000,
+        sampleRate: 8000,
+        bitrate: 8000,
 
     },
     video: false

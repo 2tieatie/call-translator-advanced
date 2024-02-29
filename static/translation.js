@@ -11,14 +11,36 @@ let startedSpeaking
 let recording = false
 let started = false
 let shadows = new Queue()
-
-
+let reader = new FileReader();
+let trimmedAudioData
+const sampleRate = 48000;
 let t
+let audioContext
+let startTime
+let startFrame
+let timeStarted
+
 let handleNewMessage = (local, translated_text, name, original_text) => {
     addMessage(translated_text, local, name, original_text)
 }
 
+reader.onload = function(event) {
+    audioContext.decodeAudioData(event.target.result, (decodedData) => {
+        startTime = lastRecordingTimeDelta / 1000 - gap / 1000 * 1.5
+        startFrame = 0
+        if (startTime > 0) {
+            startFrame = Math.floor(startTime * sampleRate);
+        }
+        socket.emit('new_recording', {
+            audio: decodedData.getChannelData(0).slice(startFrame),
+            room_id: myRoomID,
+            last_recording: lastRecordingTimeDelta,
+            firstCheckpoint: timeStarted
+        });
+        console.log((new Date().getTime() - timeStarted )/ 1000)
+    });
 
+};
 
 socket.on('new_message', (data) => {
     if (!data.hasOwnProperty(myID)) {
@@ -42,7 +64,7 @@ socket.on('new_message', (data) => {
 })
 
 let initAnalyser = (stream) => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+    audioContext = new (window.AudioContext || window.webkitAudioContext)()
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 256;
     const source = audioContext.createMediaStreamSource(stream);
@@ -52,7 +74,7 @@ let initAnalyser = (stream) => {
     dataArray = new Uint8Array(analyser.frequencyBinCount);
     const audioTrack = stream.getAudioTracks()[0];
     const audioOnlyStream = new MediaStream([audioTrack])
-    mediaRecorder = new MediaRecorder(audioOnlyStream, { mimeType: 'audio/webm;' });
+    mediaRecorder = new MediaRecorder(audioOnlyStream, { mimeType: 'audio/webm;codec=opus;' });
     mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
             chunks.push(event.data)
@@ -60,26 +82,9 @@ let initAnalyser = (stream) => {
     };
     startVAD(analyser)
     mediaRecorder.onstop = async () => {
-        let audioBlob = new Blob(chunks, { type: 'audio/webm;' });
+        timeStarted = new Date().getTime()
+        let audioBlob = new Blob(chunks, { type: 'audio/webm;codec=opus;' });
         console.log('Original: ', audioBlob)
-        let reader = new FileReader();
-
-        reader.onload = function(event) {
-            let audioData = event.target.result;
-            let audioContext = new AudioContext();
-
-            audioContext.decodeAudioData(audioData, function(decodedData) {
-                let sampleRate = 48000;
-                let startTime = lastRecordingTimeDelta / 1000 - gap / 1000;
-                let startFrame = 0
-                if (startTime > 0) {
-                    startFrame = Math.floor(startTime * sampleRate);
-                }
-                let trimmedAudioData = decodedData.getChannelData(0).slice(startFrame);
-                console.log(lastRecordingTimeDelta)
-                socket.emit('new_recording', { audio: trimmedAudioData, room_id: myRoomID, last_recording: lastRecordingTimeDelta });
-            });
-        };
         reader.readAsArrayBuffer(audioBlob);
         chunks = [];
     };

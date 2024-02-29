@@ -1,5 +1,6 @@
 import struct
-
+import time
+import asyncio
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from languages.get_languages import languages, names, get_language
@@ -14,7 +15,7 @@ Payload.max_decode_packets = 200
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "thisismys3cr3tk3y"
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
-socketio = SocketIO(app, max_http_buffer_size=500 * 1024 * 1024)
+socketio = SocketIO(app, async_mode='eventlet', max_http_buffer_size=500 * 1024 * 1024)
 
 
 _users_in_room = {}
@@ -150,45 +151,35 @@ def get_languages():
 
 @socketio.on("new_recording")
 def new_recording(data):
+    asyncio.run(async_new_recording(data))
+
+
+async def async_new_recording(data):
     user_id = request.sid
     room_id = data['room_id']
     audio_blob = data['audio']
     last_recording = data['last_recording']
+    first_checkpoint = data['firstCheckpoint'] / 1000
+    time_log('Data received', first_checkpoint)
     time_from_last_recording = last_recording / 1000
     last_message = None
     if time_from_last_recording <= MAX_MESSAGES_GAP:
         last_message = get_last_message_by_user_id(room_id=room_id, user_id=user_id, rooms=rooms)
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
-    room = get_room_by_id(room_id=room_id, rooms=rooms)
     if not sender and not receivers:
         return
     deepgram_language_sender = get_language(sender.language, 'deepgram')
     receivers_languages: dict[Participant, dict[str, str]] = {}
-    for receiver in receivers:
-        receivers_languages[receiver] = {}
-        receivers_languages[receiver]['deepl'] = get_language(receiver.language, 'deepl')
-        receivers_languages[receiver]['gtts'] = get_language(receiver.language, 'gtts')
-    translation_results = {}
-    data = Translator.recognize_speech(audio_bytes=audio_blob, language=deepgram_language_sender)
-    if data['status'] == 'succeeded':
-        if last_message:
-            data['text'] = f'{last_message.original_text} -  {data["text"]}'
-        print(data)
-        for receiver in receivers_languages.keys():
-            if receiver.language != sender.language:
-                result = Translator.translate(data=data, deepl_language=receivers_languages[receiver]['deepl'])
-                result['name'] = sender.username
-                result['gtts_language'] = receivers_languages[receiver]['gtts']
-                if result['status'] == 'success':
-                    print(result)
-                    translation_results[receiver.user_id] = result
-                    message = Message(sender=sender, receiver=receiver, original_text=result['original_text'], translated_text=result['translated_text'])
-                    room.add_message(message)
-
-        if translation_results:
-            translation_results['sender'] = sender.user_id
-            socketio.emit('new_message', translation_results, room=room_id)
+    get_participants_languages(receivers=receivers, receivers_languages=receivers_languages)
+    time_log('Got required data from storage', first_checkpoint)
+    data = Translator.recognize_speech(audio_bytes=audio_blob, language=deepgram_language_sender, first_checkpoint=first_checkpoint)
+    time_log('Recognized speech', first_checkpoint)
+    translation_results = await prepare_translated_data(data=data, last_message=last_message, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms)
+    if translation_results:
+        translation_results['sender'] = sender.user_id
+        socketio.emit('new_message', translation_results, room=room_id)
+    time_log('Translated and sent result', first_checkpoint)
 
 
 @app.route('/get_chat_history', methods=['GET'])
