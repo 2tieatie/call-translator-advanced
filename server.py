@@ -151,7 +151,10 @@ def get_languages():
 
 @socketio.on("new_recording")
 def new_recording(data):
-    asyncio.run(async_new_recording(data))
+    try:
+        asyncio.run(async_new_recording(data))
+    except Exception:
+        pass
 
 
 async def async_new_recording(data):

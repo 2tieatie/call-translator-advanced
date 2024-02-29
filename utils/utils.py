@@ -8,8 +8,8 @@ from languages.get_languages import languages, names, get_language
 from utils.translate import Translator
 
 __MAX_ROOMS = int(os.getenv('MAX_ROOMS'))
-MAX_MESSAGES_GAP = int(os.getenv('MAX_MESSAGES_GAP'))
-
+__MAX_MESSAGES_GAP = int(os.getenv('MAX_MESSAGES_GAP'))
+__MAX_MESSAGES_CONTEXT = int(os.getenv('MAX_MESSAGES_CONTEXT'))
 
 def get_room_by_id(room_id: str, rooms: list[Room]) -> Room | None:
     for room in rooms:
@@ -62,8 +62,10 @@ def get_last_messages_by_user_id(room_id: str, user_id: str, rooms: list[Room]) 
     room = get_room_by_id(room_id=room_id, rooms=rooms)
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     for message in room.messages[::-1]:
+        if len(last_messages) >= __MAX_MESSAGES_CONTEXT:
+            break
         if message.sender == sender:
-            if message.time_gap < MAX_MESSAGES_GAP:
+            if message.time_gap < __MAX_MESSAGES_GAP:
                 if message.original_text not in last_messages:
                     last_messages.append(message.original_text)
             else:
