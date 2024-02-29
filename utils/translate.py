@@ -43,7 +43,7 @@ class Translator:
     @classmethod
     def recognize_speech(cls, audio_bytes, language: str, first_checkpoint: int) -> dict[str, str]:
         audio_data = decode_audio_to_webm(audio_bytes)
-        print(f"{'Decoded audio': >35}", time.time() - first_checkpoint)
+        print(f"{'Decoded audio': <35}:", time.time() - first_checkpoint)
         # with open(f'utils/recordings/{time.time()}.webm', 'wb') as file:
         #     file.write(audio_data)
         # audio_segment = AudioSegment.from_file(audio_data.getvalue(), format=cls.MIMETYPE)
@@ -102,7 +102,7 @@ def decode_audio_to_webm(audio_data, sample_rate=48000, channels=1):
     )
     webm_data = io.BytesIO()
     audio_segment.export(webm_data, format='webm')
-    print(f"{'Audio bytes size:': <35}", sys.getsizeof(webm_data), "bytes")
+    print(f"{'Audio bytes size': <35}:", sys.getsizeof(webm_data), "bytes")
     return webm_data.getvalue()
 # import datetime
 # import time

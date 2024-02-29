@@ -100,4 +100,4 @@ async def prepare_translated_data(data: dict[str, str], last_message: Message, r
 
 
 def time_log(text: str, time_checkpoint: float, spaces: int = 35):
-    print(f'{text + ':': >{spaces}}', time.time() - time_checkpoint)
+    print(f'{text: <{spaces}}:', time.time() - time_checkpoint)

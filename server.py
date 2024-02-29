@@ -160,7 +160,8 @@ async def async_new_recording(data):
     audio_blob = data['audio']
     last_recording = data['last_recording']
     first_checkpoint = data['firstCheckpoint'] / 1000
-    time_log('Data received', first_checkpoint)
+    time_log('(SMTMS WRONG!) Data received', first_checkpoint)
+    first_checkpoint = time.time()
     time_from_last_recording = last_recording / 1000
     last_message = None
     if time_from_last_recording <= MAX_MESSAGES_GAP:
