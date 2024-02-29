@@ -57,13 +57,20 @@ def get_chat_history(room: Room, user_id: str) -> str:
     return result
 
 
-def get_last_message_by_user_id(room_id: str, user_id: str, rooms: list[Room]) -> Message | None:
+def get_last_messages_by_user_id(room_id: str, user_id: str, rooms: list[Room]) -> str:
+    last_messages: list[str] = []
     room = get_room_by_id(room_id=room_id, rooms=rooms)
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     for message in room.messages[::-1]:
         if message.sender == sender:
-            return message
-    return None
+            if message.time_gap < MAX_MESSAGES_GAP:
+                if message.original_text not in last_messages:
+                    last_messages.append(message.original_text)
+            else:
+                break
+    if last_messages:
+        return ' '.join(last_messages[::-1])
+    return ''
 
 
 def get_participants_languages(receivers: list[Participant], receivers_languages: dict[Participant, dict[str, str]]):
@@ -73,17 +80,15 @@ def get_participants_languages(receivers: list[Participant], receivers_languages
         receivers_languages[receiver]['gtts'] = get_language(receiver.language, 'gtts')
 
 
-async def prepare_translated_data(data: dict[str, str], last_message: Message, receivers_languages: dict[Participant], sender: Participant, room_id: str, rooms: list[Room]):
+async def prepare_translated_data(data: dict[str, str], context: str, receivers_languages: dict[Participant], sender: Participant, room_id: str, rooms: list[Room], time_gap: float):
     room = get_room_by_id(room_id=room_id, rooms=rooms)
     translation_results = {}
     if data['status'] == 'succeeded':
-        if last_message:
-            data['text'] = f'{last_message.original_text} -  {data["text"]}'
         tasks = []
         for receiver in receivers_languages.keys():
             if receiver.language != sender.language:
                 deepl_language = receivers_languages[receiver]['deepl']
-                tasks.append(Translator.translate(status=data['status'], text=data['text'], deepl_language=deepl_language, receiver=receiver))
+                tasks.append(Translator.translate(status=data['status'], text=data['text'], deepl_language=deepl_language, receiver=receiver, context=context))
         results = await asyncio.gather(*tasks)
         for result in results:
             if result['status'] == 'success':
@@ -94,7 +99,7 @@ async def prepare_translated_data(data: dict[str, str], last_message: Message, r
                 print(result)
                 translation_results[receiver.user_id] = result
                 message = Message(sender=sender, receiver=receiver, original_text=result['original_text'],
-                                  translated_text=result['translated_text'])
+                                  translated_text=result['translated_text'], time_gap=time_gap)
                 room.add_message(message)
     return translation_results
 

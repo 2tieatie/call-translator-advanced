@@ -3,7 +3,7 @@ let mediaRecorder
 let lastRecording = new Date().getTime()
 let chunks = []
 let lastRecordingTimeDelta
-const gap = 500 // ДЛИНА ТИШИНЫ (В мс), ПРИ КОТОРОЙ ОСТАНАВЛИВАТЬ ЗАПИСЬ
+const gap = 400 // ДЛИНА ТИШИНЫ (В мс), ПРИ КОТОРОЙ ОСТАНАВЛИВАТЬ ЗАПИСЬ
 let msg = new SpeechSynthesisUtterance();
 msg.rate = 1;
 msg.pitch = 1;
@@ -26,7 +26,7 @@ let handleNewMessage = (local, translated_text, name, original_text) => {
 
 reader.onload = function(event) {
     audioContext.decodeAudioData(event.target.result, (decodedData) => {
-        startTime = lastRecordingTimeDelta / 1000 - gap / 1000 * 1.5
+        startTime = lastRecordingTimeDelta / 1000 - gap / 1000 * 2.25
         startFrame = 0
         if (startTime > 0) {
             startFrame = Math.floor(startTime * sampleRate);

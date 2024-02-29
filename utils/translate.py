@@ -71,16 +71,16 @@ class Translator:
             }
 
     @classmethod
-    async def translate(cls, status: str, text: str, deepl_language: str, receiver: Participant) -> object:
+    async def translate(cls, status: str, text: str, deepl_language: str, receiver: Participant, context: str) -> dict[str, str | Participant]:
         if status != 'succeeded':
             return {'status': 'error'}
 
         if not text:
             return {'status': 'empty text'}
         translator = deepl.Translator(cls.DEEPL_TOKEN)
-        result = await asyncio.to_thread(translator.translate_text, text=text, target_lang=deepl_language)
-        return {'status': 'success', 'original_text': text.split('-')[-1].strip(),
-                'translated_text': result.text.split('-')[-1].strip(), 'receiver': receiver}
+        result = await asyncio.to_thread(translator.translate_text, text=text, target_lang=deepl_language, context=context)
+        return {'status': 'success', 'original_text': text,
+                'translated_text': result.text, 'receiver': receiver}
 
     @classmethod
     def make_audio(cls, text: str, language='en'):

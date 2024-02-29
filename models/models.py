@@ -9,12 +9,13 @@ class Participant:
 
 
 class Message:
-    def __init__(self, sender: Participant, receiver: Participant, original_text: str, translated_text: str):
+    def __init__(self, sender: Participant, receiver: Participant, original_text: str, translated_text: str, time_gap: float):
         self.sender: Participant = sender
         self.sender_language: str = sender.language
         self.receiver: Participant = receiver
-        self.original_text = original_text
-        self.translated_text = translated_text
+        self.original_text: str = original_text
+        self.translated_text: str = translated_text
+        self.time_gap: float = time_gap
 
     def __str__(self):
         return f'Message <sender: {self.sender}, receiver: {self.receiver}, original text: {self.original_text}, translated text: {self.translated_text}>'

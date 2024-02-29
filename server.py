@@ -163,9 +163,8 @@ async def async_new_recording(data):
     time_log('(SMTMS WRONG!) Data received', first_checkpoint)
     first_checkpoint = time.time()
     time_from_last_recording = last_recording / 1000
-    last_message = None
-    if time_from_last_recording <= MAX_MESSAGES_GAP:
-        last_message = get_last_message_by_user_id(room_id=room_id, user_id=user_id, rooms=rooms)
+    context = get_last_messages_by_user_id(room_id=room_id, user_id=user_id, rooms=rooms)
+    print(context)
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
     if not sender and not receivers:
@@ -176,7 +175,7 @@ async def async_new_recording(data):
     time_log('Got required data from storage', first_checkpoint)
     data = Translator.recognize_speech(audio_bytes=audio_blob, language=deepgram_language_sender, first_checkpoint=first_checkpoint)
     time_log('Recognized speech', first_checkpoint)
-    translation_results = await prepare_translated_data(data=data, last_message=last_message, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms)
+    translation_results = await prepare_translated_data(data=data, context=context, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms, time_gap=time_from_last_recording)
     if translation_results:
         translation_results['sender'] = sender.user_id
         socketio.emit('new_message', translation_results, room=room_id)
