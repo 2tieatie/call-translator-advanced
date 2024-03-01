@@ -148,32 +148,29 @@ def get_languages():
 def new_recording(data):
     try:
         asyncio.run(async_new_recording(data))
-    except Exception:
-        pass
+    except Exception as ex:
+        print(ex)
 
 
 async def async_new_recording(data):
     user_id = request.sid
     room_id = data['room_id']
-    audio_blob = data['audio']
+    speech = data['speech']
     last_recording = data['last_recording']
     first_checkpoint = data['firstCheckpoint'] / 1000
     time_log('(SMTMS WRONG!) Data received', first_checkpoint)
+    new_data = {'status': 'succeeded', 'text': speech}
     first_checkpoint = time.time()
     time_from_last_recording = last_recording / 1000
     context = get_last_messages_by_user_id(room_id=room_id, user_id=user_id, rooms=rooms)
-    print(context)
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
     if not sender and not receivers:
         return
-    deepgram_language_sender = get_language(sender.language, 'deepgram')
     receivers_languages: dict[Participant, dict[str, str]] = {}
     get_participants_languages(receivers=receivers, receivers_languages=receivers_languages)
     time_log('Got required data from storage', first_checkpoint)
-    data = Translator.recognize_speech(audio_bytes=audio_blob, language=deepgram_language_sender, first_checkpoint=first_checkpoint)
-    time_log('Recognized speech', first_checkpoint)
-    translation_results = await prepare_translated_data(data=data, context=context, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms, time_gap=time_from_last_recording)
+    translation_results = await prepare_translated_data(data=new_data, context=context, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms, time_gap=time_from_last_recording)
     if translation_results:
         translation_results['sender'] = sender.user_id
         socketio.emit('new_message', translation_results, room=room_id)
@@ -189,6 +186,16 @@ def get_chat_history_serv():
     with open('chat_history.txt', 'w') as file:
         file.write(chat_history_str)
     return send_file('chat_history.txt', as_attachment=True)
+
+
+@app.route('/get_language_code/<string:user_id>/<string:room_id>', methods=['GET'])
+def get_language_code(user_id: str, room_id: str):
+    user = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
+    if user:
+        print(user)
+        language_code = get_language(user.language, 'js')
+        return jsonify({'languageCode': language_code})
+    return jsonify({})
 
 
 if __name__ == "__main__":

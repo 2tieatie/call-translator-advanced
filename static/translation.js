@@ -14,16 +14,46 @@ let shadows = new Queue()
 let t
 // recognition.interimResults = true;
 recognition.continuous = true;
-recognition.lang = 'uk-UA'
+
+let getLanguageCode = () => {
+    fetch(`/get_language_code/${myID}/${myRoomID}`)
+    .then( response => response.json() )
+    .then(data => {
+        recognition.lang = data.languageCode
+    })
+}
+
 
 let handleNewMessage = (local, translated_text, name, original_text) => {
     addMessage(translated_text, local, name, original_text)
 }
 
-recognition.onresult = event => {
-    const result = event.results[event.results.length - 1][0].transcript;
-    console.log(result)
+let handleNewRecording = event => {
+    const speech = event.results[event.results.length - 1][0].transcript.trim()
+    let data;
+    if (speech) {
+        let firstCheckpoint = new Date().getTime()
+
+        data = {
+            room_id: myRoomID,
+            speech: speech,
+            firstCheckpoint: firstCheckpoint,
+            lastRecording: new Date().getTime() - lastRecording
+        }
+        console.log(data)
+        socket.emit('new_recording', {
+            room_id: myRoomID,
+            speech: speech,
+            firstCheckpoint: firstCheckpoint,
+            last_recording: new Date().getTime() - lastRecording
+        });
+        lastRecording = new Date().getTime()
+    }
 };
+
+recognition.onresult = event => {
+    handleNewRecording(event)
+}
 
 socket.on('new_message', (data) => {
     if (!data.hasOwnProperty(myID)) {
