@@ -11,36 +11,18 @@ let startedSpeaking
 let recording = false
 let started = false
 let shadows = new Queue()
-let reader = new FileReader();
-let trimmedAudioData
-const sampleRate = 48000;
 let t
-let audioContext
-let startTime
-let startFrame
-let timeStarted
-const recognition = new webkitSpeechRecognition() || new SpeechRecognition();
+// recognition.interimResults = true;
+recognition.continuous = true;
+recognition.lang = 'uk-UA'
 
 let handleNewMessage = (local, translated_text, name, original_text) => {
     addMessage(translated_text, local, name, original_text)
 }
 
-reader.onload = function(event) {
-    audioContext.decodeAudioData(event.target.result, (decodedData) => {
-        startTime = lastRecordingTimeDelta / 1000 - gap / 1000 * 2.25
-        startFrame = 0
-        if (startTime > 0) {
-            startFrame = Math.floor(startTime * sampleRate);
-        }
-        socket.emit('new_recording', {
-            audio: decodedData.getChannelData(0).slice(startFrame),
-            room_id: myRoomID,
-            last_recording: lastRecordingTimeDelta,
-            firstCheckpoint: timeStarted
-        });
-        console.log((new Date().getTime() - timeStarted )/ 1000)
-    });
-
+recognition.onresult = event => {
+    const result = event.results[event.results.length - 1][0].transcript;
+    console.log(result)
 };
 
 socket.on('new_message', (data) => {
@@ -63,33 +45,6 @@ socket.on('new_message', (data) => {
         console.log('Web Speech API does not support in this browser.');
     }
 })
-
-let initAnalyser = (stream) => {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)()
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
-    const source = audioContext.createMediaStreamSource(stream);
-    source.connect(analyser);
-    const audioElement = new Audio();
-    audioElement.srcObject = stream;
-    dataArray = new Uint8Array(analyser.frequencyBinCount);
-    const audioTrack = stream.getAudioTracks()[0];
-    const audioOnlyStream = new MediaStream([audioTrack])
-    mediaRecorder = new MediaRecorder(audioOnlyStream, { mimeType: 'audio/webm;codec=opus;' });
-    mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-            chunks.push(event.data)
-        }
-    };
-    startVAD(analyser)
-    mediaRecorder.onstop = async () => {
-        timeStarted = new Date().getTime()
-        let audioBlob = new Blob(chunks, { type: 'audio/webm;codec=opus;' });
-        console.log('Original: ', audioBlob)
-        reader.readAsArrayBuffer(audioBlob);
-        chunks = [];
-    };
-}
 
 let getParticipantsWithOtherLanguages = () => {
     socket.emit('get_users_with_other_languages', {room_id: myRoomID})
@@ -125,53 +80,6 @@ function downloadChatHistory(room_id, user_id) {
     link.click();
     document.body.removeChild(link);
 }
-
-
-function startVAD(analyser) {
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    lastRecording = new Date().getTime()
-    mediaRecorder.start();
-    let lastSpeaking
-
-    function detectVoiceActivity() {
-        analyser.getByteTimeDomainData(dataArray);
-        const avgAmplitude = dataArray.reduce((acc, val) => acc + val, 0) / bufferLength;
-        const threshold = 128;
-        const isVoiceActive = avgAmplitude > threshold;
-        if (isVoiceActive) {
-            if (!recording) {
-                startedSpeaking = new Date().getTime()
-            }
-            recording = true
-            console.log('Voice is active');
-            lastSpeaking = new Date().getTime()
-
-        } else {
-            if (new Date().getTime() - lastSpeaking > gap && recording) {
-                console.log('Voice is inactive')
-                lastRecordingTimeDelta = startedSpeaking - lastRecording
-                mediaRecorder.stop()
-                recording = false
-                mediaRecorder.start();
-                lastRecording = new Date().getTime()
-            }
-        }
-        requestAnimationFrame(detectVoiceActivity);
-    }
-    detectVoiceActivity()
-}
-
-let saveFile =  (file, filename) => {
-    const url = URL.createObjectURL(file);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-}
-
 
 msg.onstart = function (event) {
     console.log(shadows)

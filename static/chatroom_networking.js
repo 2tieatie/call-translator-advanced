@@ -30,7 +30,7 @@ let mediaConstraints = {
         echoCancellation: true,
         noiseSuppression: true,
         sampleRate: 44100,
-        bitrate: 32000,
+        bitrate: 192000,
 
     },
     video: true
@@ -42,8 +42,8 @@ let mediaConstraintsAudio = {
         autoGainControl: true,
         echoCancellation: true,
         noiseSuppression: true,
-        sampleRate: 8000,
-        bitrate: 8000,
+        sampleRate: 44100,
+        bitrate: 192000,
 
     },
     video: false
@@ -58,7 +58,6 @@ function startCamera()
         setAudioMuteState(audioMuted);
         setVideoMuteState(videoMuted);
         console.log(stream)
-        initAnalyser(stream)
         socket.connect();
     })
     .catch((e)=>{
@@ -70,7 +69,6 @@ function startCamera()
             setAudioMuteState(audioMuted);
             setVideoMuteState(videoMuted);
             console.log(stream)
-            initAnalyser(stream)
             socket.connect();
         })
     });

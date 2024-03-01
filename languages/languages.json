@@ -259,5 +259,92 @@
                 "uk": "Ukrainian"
             }
         }
+    ],
+    "js": [
+        {
+            "cs": {
+                "cs": "Czech"
+            }
+        },
+        {
+            "da": {
+                "da-DK": "Danish"
+            }
+        },
+        {
+            "de": {
+                "de-DE": "German"
+            }
+        },
+        {
+            "el": {
+                "el-GR": "Greek"
+            }
+        },
+        {
+            "en": {
+                "en-US": "English"
+            }
+        },
+        {
+            "es": {
+                "es-ES": "Spanish"
+            }
+        },
+        {
+            "fr": {
+                "fr-FR": "French"
+            }
+        },
+        {
+            "id": {
+                "id-ID": "Indonesian"
+            }
+        },
+        {
+            "it": {
+                "it-IT": "Italian"
+            }
+        },
+        {
+            "ko": {
+                "ko-KR": "Korean"
+            }
+        },
+        {
+            "nl": {
+                "nl-NL": "Dutch"
+            }
+        },
+        {
+            "pl": {
+                "pl-PL": "Polish"
+            }
+        },
+        {
+            "pt": {
+                "pt-PT": "Portuguese"
+            }
+        },
+        {
+            "ru": {
+                "ru-RU": "Russian"
+            }
+        },
+        {
+            "sv": {
+                "sv-SE": "Swedish"
+            }
+        },
+        {
+            "tr": {
+                "tr-TR": "Turkish"
+            }
+        },
+        {
+            "uk": {
+                "uk-UA": "Ukrainian"
+            }
+        }
     ]
 }

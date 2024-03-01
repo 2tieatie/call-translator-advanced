@@ -1,4 +1,5 @@
 let myVideo;
+const recognition = new webkitSpeechRecognition() || new SpeechRecognition();
 
 document.addEventListener("DOMContentLoaded", (event)=>{
     myVideo = document.getElementById("local_vid");
@@ -9,7 +10,12 @@ document.addEventListener("DOMContentLoaded", (event)=>{
 
     muteBtn.addEventListener("click", (event)=>{
         audioMuted = !audioMuted;
-        setAudioMuteState(audioMuted);        
+        setAudioMuteState(audioMuted);
+        if (!audioMuted) {
+            recognition.start()
+        } else {
+            recognition.stop()
+        }
     });    
     muteVidBtn.addEventListener("click", (event)=>{
         videoMuted = !videoMuted;
