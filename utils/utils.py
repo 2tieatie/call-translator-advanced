@@ -1,15 +1,14 @@
 import asyncio
 import time
-
 from models.models import Room, Participant, Message
-from dotenv import load_dotenv
 import os
-from languages.get_languages import languages, names, get_language
+from languages.get_languages import get_language
 from utils.translate import Translator
 
 __MAX_ROOMS = int(os.getenv('MAX_ROOMS'))
 __MAX_MESSAGES_GAP = int(os.getenv('MAX_MESSAGES_GAP'))
 __MAX_MESSAGES_CONTEXT = int(os.getenv('MAX_MESSAGES_CONTEXT'))
+
 
 def get_room_by_id(room_id: str, rooms: list[Room]) -> Room | None:
     for room in rooms:

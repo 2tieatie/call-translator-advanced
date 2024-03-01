@@ -1,11 +1,6 @@
-import struct
-import time
-import asyncio
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from flask_socketio import SocketIO, emit, join_room, leave_room
-from languages.get_languages import languages, names, get_language
-from models.models import Participant, Room, Message
-from utils.translate import Translator
+from languages.get_languages import names
 from utils.utils import *
 from uuid import uuid4
 # Next two lines are for the issue: https://github.com/miguelgrinberg/python-engineio/issues/142

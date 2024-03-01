@@ -2,16 +2,11 @@ import asyncio
 import io
 import sys
 import time
-import wave
-from io import BytesIO
 import deepl
 import os
-
-import ffmpeg
 import numpy as np
 from dotenv import load_dotenv
-from gtts import gTTS
-from deepgram import DeepgramClient, DeepgramClientOptions, PrerecordedOptions
+from deepgram import DeepgramClient, PrerecordedOptions
 from pydub import AudioSegment
 
 from models.models import Participant
@@ -44,11 +39,6 @@ class Translator:
     def recognize_speech(cls, audio_bytes, language: str, first_checkpoint: int) -> dict[str, str]:
         audio_data = decode_audio_to_webm(audio_bytes)
         print(f"{'Decoded audio': <35}:", time.time() - first_checkpoint)
-        # with open(f'utils/recordings/{time.time()}.webm', 'wb') as file:
-        #     file.write(audio_data)
-        # audio_segment = AudioSegment.from_file(audio_data.getvalue(), format=cls.MIMETYPE)
-        # if audio_segment.channels > 1:
-        #     audio_bytes = audio_segment.set_channels(1)
         source = {"buffer": audio_data, "mimetype": 'audio/' + cls.MIMETYPE}
         try:
             cls.options.language = language
@@ -81,14 +71,6 @@ class Translator:
         result = await asyncio.to_thread(translator.translate_text, text=text, target_lang=deepl_language, context=context)
         return {'status': 'success', 'original_text': text,
                 'translated_text': result.text, 'receiver': receiver}
-
-    @classmethod
-    def make_audio(cls, text: str, language='en'):
-        tts = gTTS(text=text, lang=language)
-        audio_stream = BytesIO()
-        tts.write_to_fp(audio_stream)
-        audio_stream.seek(0)
-        return audio_stream.getvalue()
 
 
 def decode_audio_to_webm(audio_data, sample_rate=48000, channels=1):
