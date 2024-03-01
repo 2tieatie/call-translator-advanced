@@ -19,6 +19,7 @@ let audioContext
 let startTime
 let startFrame
 let timeStarted
+const recognition = new webkitSpeechRecognition() || new SpeechRecognition();
 
 let handleNewMessage = (local, translated_text, name, original_text) => {
     addMessage(translated_text, local, name, original_text)
