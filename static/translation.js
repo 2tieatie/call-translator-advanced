@@ -12,8 +12,10 @@ let recording = false
 let started = false
 let shadows = new Queue()
 let t
-// recognition.interimResults = true;
+recognition.interimResults = true;
 recognition.continuous = true;
+let newMessage = true
+let lastMessageID
 
 let getLanguageCode = () => {
     fetch(`/get_language_code/${myID}/${myRoomID}`)
@@ -28,32 +30,84 @@ let handleNewMessage = (local, original_text, name, id) => {
     addMessage(local, name, original_text, id)
 }
 
-let handleNewRecording = event => {
-    const speech = event.results[event.results.length - 1][0].transcript.trim()
-    let data;
-    if (speech) {
-        let firstCheckpoint = new Date().getTime()
 
-        data = {
-            room_id: myRoomID,
-            speech: speech,
-            firstCheckpoint: firstCheckpoint,
-            lastRecording: new Date().getTime() - lastRecording
+let createLocalMessage = (text) => {
+    lastMessageID = uuidv4()
+    let messageDiv = document.createElement('div');
+    messageDiv.classList.add('localMessageBox')
+
+    let senderDiv = document.createElement('div');
+    senderDiv.classList.add('localMessageSender');
+    senderDiv.innerText = display_name;
+
+    let textDiv = document.createElement('div');
+    textDiv.classList.add('localMessage');
+
+    let originalLabel = document.createElement('strong');
+    originalLabel.innerText = 'Original: ';
+    const originalText = document.createElement('span')
+    originalText.innerText = text
+    originalText.id = lastMessageID
+    textDiv.appendChild(originalLabel);
+    textDiv.appendChild(document.createElement('br'));
+    textDiv.appendChild(originalText);
+    messageDiv.appendChild(senderDiv);
+    messageDiv.appendChild(textDiv);
+
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+let changeLocalMessage = (text) => {
+    const textStrong = document.getElementById(lastMessageID)
+    textStrong.innerText = text
+}
+
+let handleNewRecording = event => {
+    const text = Array.from(event.results)
+    .map((result) => result[0])
+    .map((result) => result.transcript)
+    .join("");
+    let isFinal = event.results[0].isFinal
+    if (text) {
+        let type = isFinal ? 'end' : 'part'
+        console.log(type, isFinal)
+        sendRecognized(text, type)
+        if (newMessage) {
+            createLocalMessage(text)
+        } else {
+            changeLocalMessage(text)
         }
-        console.log(data)
-        socket.emit('new_recording', {
-            room_id: myRoomID,
-            speech: speech,
-            firstCheckpoint: firstCheckpoint,
-            last_recording: new Date().getTime() - lastRecording
-        });
-        lastRecording = new Date().getTime()
     }
-};
+    if (isFinal) {
+        newMessage = true
+    } else if (newMessage) {
+        newMessage = false
+    }
+}
+
+let sendRecognized = (text, type) => {
+    let firstCheckpoint = new Date().getTime()
+    socket.emit('new_recording', {
+        room_id: myRoomID,
+        speech: text,
+        firstCheckpoint: firstCheckpoint,
+        last_recording: new Date().getTime() - lastRecording,
+        type: type,
+        id: lastMessageID
+    });
+    lastRecording = new Date().getTime()
+}
 
 recognition.onresult = event => {
     handleNewRecording(event)
 }
+
+recognition.onend = () =>  {
+
+}
+
 
 socket.on('new_message', (data) => {
     if (data.local) {
@@ -137,4 +191,10 @@ msg.onend = function (event) {
 
 
 
+let uuidv4 = () => {
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
+}
 
+console.log(uuidv4());

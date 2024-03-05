@@ -1,3 +1,5 @@
+from typing import Any
+
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from languages.get_languages import names
@@ -146,10 +148,14 @@ def get_languages():
 
 @socketio.on("new_recording")
 def new_recording(data):
-    try:
-        asyncio.run(async_new_recording(data))
-    except Exception as ex:
-        print(ex)
+    message_type = data['type']
+    if message_type == 'part':
+        handle_message_part(data=data)
+    else:
+        try:
+            asyncio.run(async_new_recording(data))
+        except Exception as ex:
+            print(ex)
 
 
 async def async_new_recording(data):
@@ -196,6 +202,14 @@ def get_language_code(user_id: str, room_id: str):
         language_code = get_language(user.language, 'js')
         return jsonify({'languageCode': language_code})
     return jsonify({})
+
+
+def handle_message_part(data: dict[str, str]):
+    message_id = data['id']
+    room_id = data['room_id']
+    speech = data['speech']
+    user_id = request.sid
+    receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
 
 
 if __name__ == "__main__":
