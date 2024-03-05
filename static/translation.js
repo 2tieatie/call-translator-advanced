@@ -24,8 +24,8 @@ let getLanguageCode = () => {
 }
 
 
-let handleNewMessage = (local, translated_text, name, original_text) => {
-    addMessage(translated_text, local, name, original_text)
+let handleNewMessage = (local, original_text, name, id) => {
+    addMessage(local, name, original_text, id)
 }
 
 let handleNewRecording = event => {
@@ -56,24 +56,38 @@ recognition.onresult = event => {
 }
 
 socket.on('new_message', (data) => {
-    if (!data.hasOwnProperty(myID)) {
-        let d = data[Object.keys(data)[0]]
-        console.log(d)
-        handleNewMessage(true, d.translated_text, myName, d.original_text)
-        return
-    }
-    let d = data[myID]
-    console.log(d)
-    handleNewMessage(false, d.translated_text, d.name, d.original_text)
-    if ('speechSynthesis' in window) {
-        msg.text = d.translated_text
-        msg.lang = d.gtts_language
-        window.speechSynthesis.speak(msg);
-        const element = document.getElementById('vid_' + data.sender)
-        shadows.enqueue(element)
+    if (data.local) {
+        console.log('Local Message: ', data)
     } else {
-        console.log('Web Speech API does not support in this browser.');
+        if (data.type === "start") {
+            console.log(data.text)
+            handleNewMessage(false, data.text, data.name, data.id)
+        } else if (data.type === 'part') {
+            appendMessage(data.id, data.text)
+        }
     }
+
+    // console.log(data)
+    // if (!data.hasOwnProperty(myID)) {
+    //     let d = data[Object.keys(data)[0]]
+    //     console.log(d)
+    //     handleNewMessage(true, d.translated_text, myName, d.original_text)
+    //     return
+    // }
+    // let d = data[myID]
+    // console.log(d)
+    // handleNewMessage(false, d.translated_text, d.name, d.original_text)
+
+
+    // if ('speechSynthesis' in window) {
+    //     msg.text = d.translated_text
+    //     msg.lang = d.gtts_language
+    //     window.speechSynthesis.speak(msg);
+    //     const element = document.getElementById('vid_' + data.sender)
+    //     shadows.enqueue(element)
+    // } else {
+    //     console.log('Web Speech API does not support in this browser.');
+    // }
 })
 
 let getParticipantsWithOtherLanguages = () => {

@@ -8,18 +8,6 @@ let socket = io(protocol + '//' + document.domain + ':' + location.port, {autoCo
 document.addEventListener("DOMContentLoaded", (event)=>{
     startCamera();
     document.getElementById('local_vid').muted = true
-    addMessage('Translated text', true, 'Misha', 'Original text')
-    addMessage('Translated text', true, 'Misha', 'Original text')
-    addMessage('Translated text', false, 'Misha', 'Original text')
-    addMessage('Translated text', true, 'Misha', 'Original text')
-    addMessage('Translated text', true, 'Misha', 'Original text')
-    addMessage('Translated text', true, 'Misha', 'Original text')
-    addMessage('Translated text', false, 'Misha', 'Original text')
-    addMessage('Translated text', true, 'Misha', 'Original text')
-    addMessage('Translated text', true, 'Misha', 'Original text')
-    addMessage('Translated text', true, 'Misha', 'Original text')
-    addMessage('Translated text', false, 'Misha', 'Original text')
-    addMessage('Translated text', true, 'Misha', 'Original text')
 });
 
 let camera_allowed=false;
@@ -289,7 +277,45 @@ function handleTrackEvent(event, peer_id)
 }
 
 
-let addMessage = (text, local, username, original_text) => {
+// let addMessage = (text, local, username, original_text) => {
+//     let messageDiv = document.createElement('div');
+//     messageDiv.classList.add(local ? 'localMessageBox' : 'remoteMessageBox');
+//
+//     let senderDiv = document.createElement('div');
+//     senderDiv.classList.add(local ? 'localMessageSender' : 'remoteMessageSender');
+//     senderDiv.innerText = username;
+//
+//     let textDiv = document.createElement('div');
+//     textDiv.classList.add(local ? 'localMessage' : 'remoteMessage');
+//
+//     let originalLabel = document.createElement('strong');
+//     originalLabel.innerText = 'Original: ';
+//
+//     let translatedLabel = document.createElement('strong');
+//     translatedLabel.innerText = 'Translated: ';
+//     let translatedText = document.createTextNode(text);
+//
+//
+//     let originalText = document.createTextNode(original_text);
+//
+//     textDiv.appendChild(originalLabel);
+//     textDiv.appendChild(originalText);
+//     textDiv.appendChild(document.createElement('br'));
+//     if (!local) {
+//         textDiv.appendChild(translatedLabel);
+//         textDiv.appendChild(translatedText);
+//     }
+//
+//
+//     messageDiv.appendChild(senderDiv);
+//     messageDiv.appendChild(textDiv);
+//
+//     const messagesDiv = document.getElementById('messages');
+//     messagesDiv.appendChild(messageDiv);
+//     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+// }
+
+let addMessage = (local, username, original_text, id) => {
     let messageDiv = document.createElement('div');
     messageDiv.classList.add(local ? 'localMessageBox' : 'remoteMessageBox');
 
@@ -302,27 +328,24 @@ let addMessage = (text, local, username, original_text) => {
 
     let originalLabel = document.createElement('strong');
     originalLabel.innerText = 'Original: ';
-
+    let originalText = document.createTextNode(original_text);
     let translatedLabel = document.createElement('strong');
     translatedLabel.innerText = 'Translated: ';
-    let translatedText = document.createTextNode(text);
-
-
-    let originalText = document.createTextNode(original_text);
-
+    textDiv.id = id
     textDiv.appendChild(originalLabel);
     textDiv.appendChild(originalText);
     textDiv.appendChild(document.createElement('br'));
-    if (!local) {
-        textDiv.appendChild(translatedLabel);
-        textDiv.appendChild(translatedText);
-    }
-
-
+    textDiv.appendChild(translatedLabel);
     messageDiv.appendChild(senderDiv);
     messageDiv.appendChild(textDiv);
 
     const messagesDiv = document.getElementById('messages');
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+let appendMessage = (id, text) => {
+    const message = document.getElementById(id)
+    const translatedText = document.createTextNode(text)
+    message.appendChild(translatedText)
 }

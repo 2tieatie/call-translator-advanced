@@ -170,10 +170,10 @@ async def async_new_recording(data):
     receivers_languages: dict[Participant, dict[str, str]] = {}
     get_participants_languages(receivers=receivers, receivers_languages=receivers_languages)
     time_log('Got required data from storage', first_checkpoint)
-    translation_results = await prepare_translated_data(data=new_data, context=context, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms, time_gap=time_from_last_recording)
-    if translation_results:
-        translation_results['sender'] = sender.user_id
-        socketio.emit('new_message', translation_results, room=room_id)
+    await prepare_translated_data(data=new_data, context=context, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms, time_gap=time_from_last_recording, socketio=socketio)
+    # if translation_results:
+    #     translation_results['sender'] = sender.user_id
+    #     socketio.emit('new_message', translation_results, room=room_id)
     time_log('Translated and sent result', first_checkpoint)
 
 
