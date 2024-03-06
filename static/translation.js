@@ -8,6 +8,7 @@ let msg = new SpeechSynthesisUtterance();
 msg.rate = 1;
 msg.pitch = 1;
 let shadows = new Queue()
+let ttsQueue = new Queue()
 let t
 recognition.interimResults = true;
 recognition.continuous = true;
@@ -114,44 +115,30 @@ recognition.onend = () =>  {
 
 socket.on('new_message', (data) => {
     console.log(data)
-    // if (data.local) {
-    //     console.log('Local Message: ', data)
-    // } else {
-    //     if (data.type === "start") {
-    //         console.log(data.text)
-    //         handleNewMessage(false, data.text, data.name, data.id)
-    //     } else if (data.type === 'part') {
-    //         appendMessage(data.id, data.text)
-    //     }
-    // }
-    // if (data.type === "start") {
-    //     console.log(data.text)
-    //     handleNewMessage(false, data.text, data.name, data.id)
-    // } else if (data.type === 'part') {
-    //
-    // }
     appendMessage(data.id, data.text, data.original, data.type, data.name)
-    // console.log(data)
-    // if (!data.hasOwnProperty(myID)) {
-    //     let d = data[Object.keys(data)[0]]
-    //     console.log(d)
-    //     handleNewMessage(true, d.translated_text, myName, d.original_text)
-    //     return
-    // }
-    // let d = data[myID]
-    // console.log(d)
-    // handleNewMessage(false, d.translated_text, d.name, d.original_text)
 
+    if (!data.original){
+        if ('speechSynthesis' in window) {
+            msg.text = data.translated_text
+            msg.lang = data.gtts_language
+            if (window.speechSynthesis.speaking) {
+                const element = document.getElementById('vid_' + data.sender)
+                shadows.enqueue(element)
+                ttsQueue.enqueue(
+                    {
+                        text: data.text,
+                        lang: data.gtts_language
+                    }
+                )
+            } else {
+                window.speechSynthesis.speak(msg);
+            }
 
-    if ('speechSynthesis' in window) {
-        msg.text = d.translated_text
-        msg.lang = d.gtts_language
-        window.speechSynthesis.speak(msg);
-        const element = document.getElementById('vid_' + data.sender)
-        shadows.enqueue(element)
-    } else {
-        console.log('Web Speech API does not support in this browser.');
+        } else {
+            console.log('Web Speech API does not support in this browser.');
+        }
     }
+
 })
 
 let getParticipantsWithOtherLanguages = () => {
