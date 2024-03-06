@@ -65,17 +65,24 @@ class Translator:
     async def get_answer(cls, request, socketio, receiver, sender, message_id: str, tts_language: str) -> str:
         word = ''
         result = ''
-        messages = cls.create_messages(language=request['language'], text=request['text'], context=request['context'])
-        stream = await cls.client.chat.completions.create(
-            messages=messages,
-            model=
-            # "mixtral-8x7b-32768",
-            "llama2-70b-4096",
-            temperature=0, max_tokens=1024, top_p=1, stop=None, stream=True
+        prompt_ = cls.create_messages(language=request['language'], text=request['text'], context=request['context'])
+        # stream = await cls.client.chat.completions.create(
+        #     messages=messages,
+        #     model=
+        #     # "mixtral-8x7b-32768",
+        #     "llama2-70b-4096",
+        #     temperature=0, max_tokens=1024, top_p=1, stop=None, stream=True
+        # )
+        stream = together.Complete.create_streaming(
+            prompt=prompt_,
+            model="openchat/openchat-3.5-1210",
+            max_tokens=9999,
+            temperature=0,
         )
         added_part = False
-        async for chunk in stream:
-            content = chunk.choices[0].delta.content
+        for chunk in stream:
+            # content = chunk.choices[0].delta.content
+            content = chunk
             print(content)
             if not content:
                 continue
@@ -110,36 +117,53 @@ class Translator:
         return result
 
     @classmethod
-    def create_messages(cls, language: str, context: str, text: str) -> Iterable:
-        return [
-            {
-                "role": "system",
-                "content": "You are a professional translator. STRICTLY follow every provided instruction."
-            },
-            {
-                "role": "user",
-                "content": 'Some Examples for your task: 1 Example (English): User Input: Я космонавт. Your Answer: I am astronaut.'}
-            ,
-            {
-                "role": "user",
-                "content": '2 Example (English): User Input: Hallo! Ich heisse Misha. Your Answer: Hello! My name is Misha.'
-            },
-            {
-                "role": "user",
-                "content": '3 Example (Russian): User Input: Establishing a robust online presence is imperative for modern businesses to thrive in a competitive market landscape. Your Answer: Создание надежного онлайн-присутствия необходимо для современных бизнесов, чтобы процветать в конкурентной рыночной среде.',
-            },
-            {
-                'role': 'user',
-                'content': f'''Your main task is to translate the following text of a “business call part” into {language}. Follow this instructions while translating:
-                     1) If semicolon's needed, place them in the right place.
-                     2) Keep in mind that this is a business talk and everything has to sound official
-                     3) VERY IMPORTANT: You are only allowed to answer with the translation. Don’t say anything else. You are also not allowed to make notes or answer with ANYTHING except the translation.
-                     4) Pay attention to the previous users message while translating
-                     5) Do not greet me and do not explain translation
-                     6) Do not respond as in mail format
-                     7) You are forbidden to say 'Here is the translation of the provided text:'
-                     8) You are not allowed to make any notes
-                     Here is the previous message: {context}
-                     Here is the Text: {text}'''
-            }
-        ]
+    def create_messages(cls, language: str, context: str, text: str) -> str:
+        # return [
+        #     {
+        #         "role": "system",
+        #         "content": "You are a professional translator. STRICTLY follow every provided instruction."
+        #     },
+        #     {
+        #         "role": "user",
+        #         "content": 'Some Examples for your task: 1 Example (English): User Input: Я космонавт. Your Answer: I am astronaut.'}
+        #     ,
+        #     {
+        #         "role": "user",
+        #         "content": '2 Example (English): User Input: Hallo! Ich heisse Misha. Your Answer: Hello! My name is Misha.'
+        #     },
+        #     {
+        #         "role": "user",
+        #         "content": '3 Example (Russian): User Input: Establishing a robust online presence is imperative for modern businesses to thrive in a competitive market landscape. Your Answer: Создание надежного онлайн-присутствия необходимо для современных бизнесов, чтобы процветать в конкурентной рыночной среде.',
+        #     },
+        #     {
+        #         'role': 'user',
+        #         'content': f'''Your main task is to translate the following text of a “business call part” into {language}. Follow this instructions while translating:
+        #              1) If semicolon's needed, place them in the right place.
+        #              2) Keep in mind that this is a business talk and everything has to sound official
+        #              3) VERY IMPORTANT: You are only allowed to answer with the translation. Don’t say anything else. You are also not allowed to make notes or answer with ANYTHING except the translation.
+        #              4) Pay attention to the previous users message while translating
+        #              5) Do not greet me and do not explain translation
+        #              6) Do not respond as in mail format
+        #              7) You are forbidden to say 'Here is the translation of the provided text:'
+        #              8) You are not allowed to make any notes
+        #              Here is the previous message: {context}
+        #              Here is the Text: {text}'''
+        #     }
+        # ]
+        return f"""You are a professional translator. STRICTLY follow every provided instruction.
+            Your main task is to translate the following text of a “business call part” into {language}. Follow this instructions while translating:
+            1) If semicolon's needed, place them in the right place.
+            2) Keep in mind that this is a business talk and everything has to sound official
+            3) VERY IMPORTANT: You are only allowed to answer with the translation. Don’t say anything else. You are also not allowed to make notes or answer with ANYTHING except the translation.
+            4) Pay attention to the previous users message while translating
+            5) Do not greet me and do not explain translation
+            6) Do not respond as in mail format
+            7) You are forbidden to say 'Here is the translation of the provided text:'
+            8) You are not allowed to make any notes
+            Here is the previous message: {context}
+            Here is the Text: {text}
+            Some Examples for your task: 
+            1 Example (English): User Input: Я космонавт. Your Answer: I am astronaut.
+            2 Example (English): User Input: Hallo! Ich heisse Misha. Your Answer: Hello! My name is Misha.
+            3 Example (Russian): User Input: Establishing a robust online presence is imperative for modern businesses to thrive in a competitive market landscape. Your Answer: Создание надежного онлайн-присутствия необходимо для современных бизнесов, чтобы процветать в конкурентной рыночной среде.
+        """
