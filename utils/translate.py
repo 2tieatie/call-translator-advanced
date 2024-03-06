@@ -7,7 +7,6 @@ from models.models import Participant
 import together
 from typing import Iterable
 from langchain_community.chat_models import ChatLiteLLM
-os.environ["TOGETHERAI_API_KEY"] = os.getenv('TOGETHER_TOKEN')
 from langchain_community.chat_models import ChatLiteLLM
 
 
@@ -19,6 +18,7 @@ def load_env():
 
 
 load_env()
+os.environ["TOGETHERAI_API_KEY"] = os.getenv('TOGETHER_TOKEN')
 
 
 prompt = ChatPromptTemplate.from_messages(
@@ -118,6 +118,8 @@ class Translator:
         #         word += content
         #     added_part = False
         #     result += content
+        word = word.replace('Translation: ', '')
+        # [:word.find('(')]
         socketio.emit('new_message', {
             "id": message_id,
             "text": word,
@@ -188,8 +190,8 @@ class Translator:
                 2) VERY IMPORTANT: You are only allowed to answer with the translation. Don’t say anything else. You are also not allowed to make notes or answer with ANYTHING except the translation.
                 3) Pay attention to the previous users message while translating
                 4) Start your message always with 'Translation:')
+                5) Don`t explain any translations you make
                 '''),
             HumanMessage(f'''
-                         Here is the previous message: {context}
                          Here is the Text: {text}''')
         ]
