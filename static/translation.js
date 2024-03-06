@@ -70,7 +70,6 @@ let handleNewRecording = event => {
     .join("");
     if (text) {
         let type = isFinal ? 'end' : 'part'
-        console.log(type, isFinal)
         if (newMessage) {
             lastRecordingTimeDelta = new Date().getTime() - lastRecording
             createLocalMessage(text)
@@ -106,7 +105,6 @@ recognition.onresult = event => {
 }
 
 recognition.onend = () =>  {
-    console.log('ended')
     if (!audioMuted) {
         recognition.start()
     }
@@ -114,23 +112,23 @@ recognition.onend = () =>  {
 
 
 socket.on('new_message', (data) => {
-    console.log(data)
     appendMessage(data.id, data.text, data.original, data.type, data.name)
 
     if (!data.original){
+        msg.text = data.text
+        msg.lang = data.tts_language
         if ('speechSynthesis' in window) {
-            msg.text = data.translated_text
-            msg.lang = data.gtts_language
             if (window.speechSynthesis.speaking) {
                 const element = document.getElementById('vid_' + data.sender)
                 shadows.enqueue(element)
                 ttsQueue.enqueue(
                     {
                         text: data.text,
-                        lang: data.gtts_language
+                        lang: data.tts_language
                     }
                 )
             } else {
+                console.log(msg)
                 window.speechSynthesis.speak(msg);
             }
 
@@ -146,7 +144,6 @@ let getParticipantsWithOtherLanguages = () => {
 }
 
 socket.on('users_with_other_languages', (data) => {
-    console.log('data', data)
     if (data.user_id === myID) {
         muteOthers(data.with_other_languages)
     }
@@ -178,12 +175,19 @@ function downloadChatHistory(room_id, user_id) {
 
 msg.onstart = function (event) {
     console.log(shadows)
-    shadows.front().style.boxShadow = "0 0 20px 5px #faaf3f";
+    // shadows.front().style.boxShadow = "0 0 20px 5px #faaf3f";
 };
 
 msg.onend = function (event) {
-    shadows.front().style.boxShadow = "none"
     shadows.dequeue()
+    console.log(ttsQueue.size())
+    if (ttsQueue.size()) {
+        msg.text = ttsQueue.front().text
+        msg.lang = ttsQueue.front().lang
+        window.speechSynthesis.speak(msg)
+    }
+    ttsQueue.dequeue()
+    // shadows.front().style.boxShadow = "none"
 };
 
 
@@ -194,4 +198,3 @@ let uuidv4 = () => {
   );
 }
 
-console.log(uuidv4());

@@ -276,45 +276,6 @@ function handleTrackEvent(event, peer_id)
     }
 }
 
-
-// let addMessage = (text, local, username, original_text) => {
-//     let messageDiv = document.createElement('div');
-//     messageDiv.classList.add(local ? 'localMessageBox' : 'remoteMessageBox');
-//
-//     let senderDiv = document.createElement('div');
-//     senderDiv.classList.add(local ? 'localMessageSender' : 'remoteMessageSender');
-//     senderDiv.innerText = username;
-//
-//     let textDiv = document.createElement('div');
-//     textDiv.classList.add(local ? 'localMessage' : 'remoteMessage');
-//
-//     let originalLabel = document.createElement('strong');
-//     originalLabel.innerText = 'Original: ';
-//
-//     let translatedLabel = document.createElement('strong');
-//     translatedLabel.innerText = 'Translated: ';
-//     let translatedText = document.createTextNode(text);
-//
-//
-//     let originalText = document.createTextNode(original_text);
-//
-//     textDiv.appendChild(originalLabel);
-//     textDiv.appendChild(originalText);
-//     textDiv.appendChild(document.createElement('br'));
-//     if (!local) {
-//         textDiv.appendChild(translatedLabel);
-//         textDiv.appendChild(translatedText);
-//     }
-//
-//
-//     messageDiv.appendChild(senderDiv);
-//     messageDiv.appendChild(textDiv);
-//
-//     const messagesDiv = document.getElementById('messages');
-//     messagesDiv.appendChild(messageDiv);
-//     messagesDiv.scrollTop = messagesDiv.scrollHeight;
-// }
-
 let addMessage = (local, username, original_text, id) => {
     let messageDiv = document.createElement('div');
     messageDiv.classList.add(local ? 'localMessageBox' : 'remoteMessageBox');
@@ -332,8 +293,6 @@ let addMessage = (local, username, original_text, id) => {
     originalText.innerText = original_text
     let translatedLabel = document.createElement('strong');
     translatedLabel.innerText = 'Translated: ';
-    // let translatedText = document.createElement('span')
-    // translatedText.id = 'trans_' + id
     textDiv.appendChild(originalLabel);
     textDiv.appendChild(document.createElement('br'));
     textDiv.appendChild(originalText);
@@ -369,4 +328,6 @@ let appendMessage = (id, text, original, type, username) => {
             message.appendChild(translatedText)
         }
     }
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }

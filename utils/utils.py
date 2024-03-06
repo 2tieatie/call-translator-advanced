@@ -88,7 +88,7 @@ async def prepare_translated_data(data: dict[str, str], context: str, receivers_
         tasks = []
         for receiver in receivers_languages.keys():
             if receiver.language != sender.language:
-                tasks.append(Translator.translate(status=data['status'], text=data['text'], receiver=receiver, sender=sender, context=context, socketio=socketio, message_id=message_id))
+                tasks.append(Translator.translate(status=data['status'], text=data['text'], receiver=receiver, sender=sender, context=context, socketio=socketio, message_id=message_id, tts_language=receivers_languages[receiver]['gtts']))
         results = await asyncio.gather(*tasks)
         for result in results:
             if result['status'] == 'success':
