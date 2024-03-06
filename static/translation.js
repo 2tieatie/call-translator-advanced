@@ -3,13 +3,10 @@ let mediaRecorder
 let lastRecording = new Date().getTime()
 let chunks = []
 let lastRecordingTimeDelta
-const gap = 400 // ДЛИНА ТИШИНЫ (В мс), ПРИ КОТОРОЙ ОСТАНАВЛИВАТЬ ЗАПИСЬ
+// const gap = 400 // ДЛИНА ТИШИНЫ (В мс), ПРИ КОТОРОЙ ОСТАНАВЛИВАТЬ ЗАПИСЬ
 let msg = new SpeechSynthesisUtterance();
 msg.rate = 1;
 msg.pitch = 1;
-let startedSpeaking
-let recording = false
-let started = false
 let shadows = new Queue()
 let t
 recognition.interimResults = true;
@@ -109,7 +106,9 @@ recognition.onresult = event => {
 
 recognition.onend = () =>  {
     console.log('ended')
-    recognition.start()
+    if (!audioMuted) {
+        recognition.start()
+    }
 }
 
 
@@ -144,15 +143,15 @@ socket.on('new_message', (data) => {
     // handleNewMessage(false, d.translated_text, d.name, d.original_text)
 
 
-    // if ('speechSynthesis' in window) {
-    //     msg.text = d.translated_text
-    //     msg.lang = d.gtts_language
-    //     window.speechSynthesis.speak(msg);
-    //     const element = document.getElementById('vid_' + data.sender)
-    //     shadows.enqueue(element)
-    // } else {
-    //     console.log('Web Speech API does not support in this browser.');
-    // }
+    if ('speechSynthesis' in window) {
+        msg.text = d.translated_text
+        msg.lang = d.gtts_language
+        window.speechSynthesis.speak(msg);
+        const element = document.getElementById('vid_' + data.sender)
+        shadows.enqueue(element)
+    } else {
+        console.log('Web Speech API does not support in this browser.');
+    }
 })
 
 let getParticipantsWithOtherLanguages = () => {

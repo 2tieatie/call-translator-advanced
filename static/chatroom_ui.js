@@ -1,6 +1,6 @@
 let myVideo;
 const recognition = new webkitSpeechRecognition() || new SpeechRecognition();
-
+let audioM = true
 document.addEventListener("DOMContentLoaded", (event)=>{
     myVideo = document.getElementById("local_vid");
     myVideo.onloadeddata = ()=>{console.log("W,H: ", myVideo.videoWidth, ", ", myVideo.videoHeight);};
@@ -82,6 +82,7 @@ function setAudioMuteState(flag)
 {
     let local_stream = myVideo.srcObject;
     local_stream.getAudioTracks().forEach((track)=>{track.enabled = !flag;});
+    audioM = flag
     document.getElementById("mute_icon").innerText = (flag)? "mic_off": "mic";
 }
 function setVideoMuteState(flag)
