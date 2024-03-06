@@ -66,7 +66,10 @@ class Translator:
         messages = cls.create_messages(language=request['language'], text=request['text'], context=request['context'])
         stream = await cls.client.chat.completions.create(
             messages=messages,
-            model="mixtral-8x7b-32768", temperature=0, max_tokens=1024, top_p=1, stop=None, stream=True
+            model=
+            # "mixtral-8x7b-32768",
+            "llama2-70b-4096",
+            temperature=0, max_tokens=1024, top_p=1, stop=None, stream=True
         )
         added_part = False
         async for chunk in stream:
