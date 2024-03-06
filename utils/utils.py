@@ -81,14 +81,14 @@ def get_participants_languages(receivers: list[Participant], receivers_languages
         receivers_languages[receiver]['gtts'] = get_language(receiver.language, 'gtts')
 
 
-async def prepare_translated_data(data: dict[str, str], context: str, receivers_languages: dict[Participant], sender: Participant, room_id: str, rooms: list[Room], time_gap: float, socketio):
+async def prepare_translated_data(data: dict[str, str], context: str, receivers_languages: dict[Participant], sender: Participant, room_id: str, rooms: list[Room], time_gap: float, socketio, message_id: str):
     room = get_room_by_id(room_id=room_id, rooms=rooms)
     translation_results = {}
     if data['status'] == 'succeeded':
         tasks = []
         for receiver in receivers_languages.keys():
             if receiver.language != sender.language:
-                tasks.append(Translator.translate(status=data['status'], text=data['text'], receiver=receiver, sender=sender, context=context, socketio=socketio))
+                tasks.append(Translator.translate(status=data['status'], text=data['text'], receiver=receiver, sender=sender, context=context, socketio=socketio, message_id=message_id))
         results = await asyncio.gather(*tasks)
         for result in results:
             if result['status'] == 'success':
@@ -99,10 +99,9 @@ async def prepare_translated_data(data: dict[str, str], context: str, receivers_
                 print(result)
                 translation_results[receiver.user_id] = result
                 message = Message(sender=sender, receiver=receiver, original_text=result['original_text'],
-                                  translated_text=result['translated_text'], time_gap=time_gap)
+                                  translated_text=result['translated_text'], time_gap=time_gap, message_id=message_id)
                 room.add_message(message)
     return translation_results
-
 
 
 def time_log(text: str, time_checkpoint: float, spaces: int = 35):

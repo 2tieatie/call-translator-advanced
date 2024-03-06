@@ -16,7 +16,6 @@ recognition.interimResults = true;
 recognition.continuous = true;
 let newMessage = true
 let lastMessageID
-
 let getLanguageCode = () => {
     fetch(`/get_language_code/${myID}/${myRoomID}`)
     .then( response => response.json() )
@@ -38,7 +37,7 @@ let createLocalMessage = (text) => {
 
     let senderDiv = document.createElement('div');
     senderDiv.classList.add('localMessageSender');
-    senderDiv.innerText = display_name;
+    senderDiv.innerText = myName;
 
     let textDiv = document.createElement('div');
     textDiv.classList.add('localMessage');
@@ -57,6 +56,7 @@ let createLocalMessage = (text) => {
     const messagesDiv = document.getElementById('messages');
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
 }
 
 let changeLocalMessage = (text) => {
@@ -65,23 +65,27 @@ let changeLocalMessage = (text) => {
 }
 
 let handleNewRecording = event => {
+    let isFinal = event.results[event.results.length - 1].isFinal
     const text = Array.from(event.results)
     .map((result) => result[0])
     .map((result) => result.transcript)
     .join("");
-    let isFinal = event.results[0].isFinal
     if (text) {
         let type = isFinal ? 'end' : 'part'
         console.log(type, isFinal)
-        sendRecognized(text, type)
         if (newMessage) {
+            lastRecordingTimeDelta = new Date().getTime() - lastRecording
             createLocalMessage(text)
+            sendRecognized(text, type)
         } else {
+            sendRecognized(text, type)
             changeLocalMessage(text)
         }
     }
     if (isFinal) {
         newMessage = true
+        recognition.stop()
+        lastRecording = new Date().getTime()
     } else if (newMessage) {
         newMessage = false
     }
@@ -93,11 +97,10 @@ let sendRecognized = (text, type) => {
         room_id: myRoomID,
         speech: text,
         firstCheckpoint: firstCheckpoint,
-        last_recording: new Date().getTime() - lastRecording,
+        last_recording: lastRecordingTimeDelta,
         type: type,
         id: lastMessageID
     });
-    lastRecording = new Date().getTime()
 }
 
 recognition.onresult = event => {
@@ -105,22 +108,30 @@ recognition.onresult = event => {
 }
 
 recognition.onend = () =>  {
-
+    console.log('ended')
+    recognition.start()
 }
 
 
 socket.on('new_message', (data) => {
-    if (data.local) {
-        console.log('Local Message: ', data)
-    } else {
-        if (data.type === "start") {
-            console.log(data.text)
-            handleNewMessage(false, data.text, data.name, data.id)
-        } else if (data.type === 'part') {
-            appendMessage(data.id, data.text)
-        }
-    }
-
+    console.log(data)
+    // if (data.local) {
+    //     console.log('Local Message: ', data)
+    // } else {
+    //     if (data.type === "start") {
+    //         console.log(data.text)
+    //         handleNewMessage(false, data.text, data.name, data.id)
+    //     } else if (data.type === 'part') {
+    //         appendMessage(data.id, data.text)
+    //     }
+    // }
+    // if (data.type === "start") {
+    //     console.log(data.text)
+    //     handleNewMessage(false, data.text, data.name, data.id)
+    // } else if (data.type === 'part') {
+    //
+    // }
+    appendMessage(data.id, data.text, data.original, data.type, data.name)
     // console.log(data)
     // if (!data.hasOwnProperty(myID)) {
     //     let d = data[Object.keys(data)[0]]

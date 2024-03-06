@@ -149,6 +149,7 @@ def get_languages():
 @socketio.on("new_recording")
 def new_recording(data):
     message_type = data['type']
+    print(message_type, data)
     if message_type == 'part':
         handle_message_part(data=data)
     else:
@@ -162,6 +163,7 @@ async def async_new_recording(data):
     user_id = request.sid
     room_id = data['room_id']
     speech = data['speech']
+    message_id = data['id']
     last_recording = data['last_recording']
     first_checkpoint = data['firstCheckpoint'] / 1000
     time_log('(SMTMS WRONG!) Data received', first_checkpoint)
@@ -176,7 +178,7 @@ async def async_new_recording(data):
     receivers_languages: dict[Participant, dict[str, str]] = {}
     get_participants_languages(receivers=receivers, receivers_languages=receivers_languages)
     time_log('Got required data from storage', first_checkpoint)
-    await prepare_translated_data(data=new_data, context=context, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms, time_gap=time_from_last_recording, socketio=socketio)
+    await prepare_translated_data(data=new_data, context=context, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms, time_gap=time_from_last_recording, socketio=socketio, message_id=message_id)
     # if translation_results:
     #     translation_results['sender'] = sender.user_id
     #     socketio.emit('new_message', translation_results, room=room_id)
@@ -210,6 +212,16 @@ def handle_message_part(data: dict[str, str]):
     speech = data['speech']
     user_id = request.sid
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
+    sender = get_participant_by_id(room_id=room_id, rooms=rooms, user_id=user_id)
+    for receiver in receivers:
+        socketio.emit('new_message', {
+            "id": message_id,
+            "text": speech,
+            "type": "part",
+            "local": False,
+            "name": sender.username,
+            "original": True
+        }, to=receiver.user_id)
 
 
 if __name__ == "__main__":

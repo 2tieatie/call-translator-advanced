@@ -9,7 +9,8 @@ class Participant:
 
 
 class Message:
-    def __init__(self, sender: Participant, receiver: Participant, original_text: str, translated_text: str, time_gap: float):
+    def __init__(self, message_id: str, sender: Participant, receiver: Participant, original_text: str, translated_text: str, time_gap: float):
+        self.id: str = message_id
         self.sender: Participant = sender
         self.sender_language: str = sender.language
         self.receiver: Participant = receiver

@@ -48,7 +48,7 @@ class Translator:
     chain = prompt | __groq
 
     @classmethod
-    async def translate(cls, status: str, text: str, receiver: Participant, sender: Participant, context: str, socketio) -> dict[
+    async def translate(cls, status: str, text: str, receiver: Participant, sender: Participant, context: str, socketio, message_id: str) -> dict[
         str, str | Participant]:
         if status != 'succeeded':
             return {'status': 'error'}
@@ -62,23 +62,23 @@ class Translator:
             "context": context,
             "text": text
         }
-        result = await cls.get_answer(request, socketio, receiver, sender, original_text=text)
+        result = await cls.get_answer(request, socketio, receiver, sender, original_text=text, message_id=message_id)
         print(result)
         return {'status': 'success', 'original_text': text,
                 'translated_text': result, 'receiver': receiver}
 
     @classmethod
-    async def get_answer(cls, request, socketio, receiver, sender, original_text) -> str:
+    async def get_answer(cls, request, socketio, receiver, sender, original_text, message_id: str) -> str:
         word = ''
         result = ''
-        message_id = str(uuid.uuid4())
-        socketio.emit('new_message', {
-            "id": message_id,
-            "text": original_text,
-            "type": "start",
-            "local": False,
-            "name": sender.username
-        }, to=receiver.user_id)
+        # message_id = str(uuid.uuid4())
+        # socketio.emit('new_message', {
+        #     "id": message_id,
+        #     "text": original_text,
+        #     "type": "start",
+        #     "local": False,
+        #     "name": sender.username
+        # }, to=receiver.user_id)
         async for chunk in cls.chain.astream(request):
             content = chunk.content
             if content.startswith(' '):
@@ -87,7 +87,8 @@ class Translator:
                     "text": word,
                     "type": "part",
                     "local": False,
-                    "name": sender.username
+                    "name": sender.username,
+                    "original": False
                 }, to=receiver.user_id)
                 word = ''
             word += content
@@ -97,6 +98,7 @@ class Translator:
             "text": word,
             "type": "part",
             "local": False,
-            "name": sender.username
+            "name": sender.username,
+            "original": False
         }, to=receiver.user_id)
         return result
