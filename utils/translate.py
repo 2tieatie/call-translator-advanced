@@ -68,6 +68,7 @@ class Translator:
             messages=messages,
             model="mixtral-8x7b-32768", temperature=0, max_tokens=1024, top_p=1, stop=None, stream=True
         )
+        added_part = False
         async for chunk in stream:
             content = chunk.choices[0].delta.content
             print(content)
@@ -76,6 +77,7 @@ class Translator:
             if '(' in content:
                 break
             if content.endswith('.') or content.endswith('?') or content.endswith('!'):
+                added_part = True
                 word += content
                 socketio.emit('new_message', {
                     "id": message_id,
@@ -87,7 +89,9 @@ class Translator:
                     "tts_language": tts_language
                 }, to=receiver.user_id)
                 word = ''
-            word += content
+            if not added_part:
+                word += content
+            added_part = False
             result += content
         socketio.emit('new_message', {
             "id": message_id,
