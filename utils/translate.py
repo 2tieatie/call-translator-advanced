@@ -3,8 +3,9 @@ from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 from models.models import Participant
-from groq import AsyncGroq
+import together
 from typing import Iterable
+
 
 def load_env():
     dotenv_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'config.env')
@@ -13,6 +14,7 @@ def load_env():
 
 
 load_env()
+together.api_key = os.getenv('TOGETHER_TOKEN')
 
 prompt = ChatPromptTemplate.from_messages(
     [
@@ -36,7 +38,7 @@ prompt = ChatPromptTemplate.from_messages(
 class Translator:
     __GROQ_TOKEN = os.getenv('GROQ_TOKEN')
     __groq = ChatGroq(temperature=0.25, groq_api_key=__GROQ_TOKEN, model_name="mixtral-8x7b-32768")
-    client = AsyncGroq(api_key=__GROQ_TOKEN)
+    # client = AsyncGroq(api_key=__GROQ_TOKEN)
     chain = prompt | __groq
 
     @classmethod
