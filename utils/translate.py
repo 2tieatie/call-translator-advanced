@@ -1,10 +1,15 @@
 import os
 from dotenv import load_dotenv
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 from models.models import Participant
 import together
 from typing import Iterable
+from langchain_community.chat_models import ChatLiteLLM
+os.environ["TOGETHERAI_API_KEY"] = os.getenv('TOGETHER_TOKEN')
+from langchain_community.chat_models import ChatLiteLLM
+
 
 
 def load_env():
@@ -14,7 +19,7 @@ def load_env():
 
 
 load_env()
-together.api_key = os.getenv('TOGETHER_TOKEN')
+
 
 prompt = ChatPromptTemplate.from_messages(
     [
@@ -40,6 +45,12 @@ class Translator:
     __groq = ChatGroq(temperature=0.25, groq_api_key=__GROQ_TOKEN, model_name="mixtral-8x7b-32768")
     # client = AsyncGroq(api_key=__GROQ_TOKEN)
     chain = prompt | __groq
+    OpenChat = ChatLiteLLM(model="together_ai/mistralai/Mixtral-8x7B-Instruct-v0.1", verbose=True,
+                           handle_parsing_errors=True)
+    OpenChat.model_kwargs = {
+        "temperature": 0,
+        "max_tokens": 256
+    }
 
     @classmethod
     async def translate(cls, status: str, text: str, receiver: Participant, sender: Participant, context: str, socketio, message_id: str, tts_language: str) -> dict[
@@ -65,7 +76,7 @@ class Translator:
     async def get_answer(cls, request, socketio, receiver, sender, message_id: str, tts_language: str) -> str:
         word = ''
         result = ''
-        prompt_ = cls.create_messages(language=request['language'], text=request['text'], context=request['context'])
+        messages = cls.create_messages(language=request['language'], text=request['text'], context=request['context'])
         # stream = await cls.client.chat.completions.create(
         #     messages=messages,
         #     model=
@@ -73,38 +84,40 @@ class Translator:
         #     "llama2-70b-4096",
         #     temperature=0, max_tokens=1024, top_p=1, stop=None, stream=True
         # )
-        stream = together.Complete.create_streaming(
-            prompt=prompt_,
-            model="openchat/openchat-3.5-1210",
-            max_tokens=9999,
-            temperature=0,
-        )
-        added_part = False
-        for chunk in stream:
-            # content = chunk.choices[0].delta.content
-            content = chunk
-            print(content)
-            if not content:
-                continue
-            if '(' in content:
-                break
-            if content.endswith('.') or content.endswith('?') or content.endswith('!'):
-                added_part = True
-                word += content
-                socketio.emit('new_message', {
-                    "id": message_id,
-                    "text": word,
-                    "type": "part",
-                    "local": False,
-                    "name": sender.username,
-                    "original": False,
-                    "tts_language": tts_language
-                }, to=receiver.user_id)
-                word = ''
-            if not added_part:
-                word += content
-            added_part = False
-            result += content
+        # stream = together.Complete.create_streaming(
+        #     prompt=prompt_,
+        #     model="mistralai/Mixtral-8x7B-Instruct-v0.1",
+        #     max_tokens=9999,
+        #     temperature=0,
+        # )
+        #
+        word = cls.OpenChat(messages).content
+        # added_part = False
+        # for chunk in stream:
+        #     # content = chunk.choices[0].delta.content
+        #     content = chunk
+        #     print(content)
+        #     if not content:
+        #         continue
+        #     if '(' in content or '[' in content:
+        #         break
+        #     if content.endswith('.') or content.endswith('?') or content.endswith('!'):
+        #         added_part = True
+        #         word += content
+        #         socketio.emit('new_message', {
+        #             "id": message_id,
+        #             "text": word,
+        #             "type": "part",
+        #             "local": False,
+        #             "name": sender.username,
+        #             "original": False,
+        #             "tts_language": tts_language
+        #         }, to=receiver.user_id)
+        #         word = ''
+        #     if not added_part:
+        #         word += content
+        #     added_part = False
+        #     result += content
         socketio.emit('new_message', {
             "id": message_id,
             "text": word,
@@ -117,7 +130,7 @@ class Translator:
         return result
 
     @classmethod
-    def create_messages(cls, language: str, context: str, text: str) -> str:
+    def create_messages(cls, language: str, context: str, text: str):
         # return [
         #     {
         #         "role": "system",
@@ -150,20 +163,33 @@ class Translator:
         #              Here is the Text: {text}'''
         #     }
         # ]
-        return f"""You are a professional translator. STRICTLY follow every provided instruction.
-            Your main task is to translate the following text of a “business call part” into {language}. Follow this instructions while translating:
-            1) If semicolon's needed, place them in the right place.
-            2) Keep in mind that this is a business talk and everything has to sound official
-            3) VERY IMPORTANT: You are only allowed to answer with the translation. Don’t say anything else. You are also not allowed to make notes or answer with ANYTHING except the translation.
-            4) Pay attention to the previous users message while translating
-            5) Do not greet me and do not explain translation
-            6) Do not respond as in mail format
-            7) You are forbidden to say 'Here is the translation of the provided text:'
-            8) You are not allowed to make any notes
-            Here is the previous message: {context}
-            Here is the Text: {text}
-            Some Examples for your task: 
-            1 Example (English): User Input: Я космонавт. Your Answer: I am astronaut.
-            2 Example (English): User Input: Hallo! Ich heisse Misha. Your Answer: Hello! My name is Misha.
-            3 Example (Russian): User Input: Establishing a robust online presence is imperative for modern businesses to thrive in a competitive market landscape. Your Answer: Создание надежного онлайн-присутствия необходимо для современных бизнесов, чтобы процветать в конкурентной рыночной среде.
-        """
+        # return f"""[INST]You are a professional translator. STRICTLY follow every provided instruction.
+        #     Your main task is to translate the following text of a “business call part” into {language}. Follow this instructions while translating:
+        #     1) If semicolon's needed, place them in the right place.
+        #     2) Keep in mind that this is a business talk and everything has to sound official
+        #     3) VERY IMPORTANT: You are only allowed to answer with the translation. Don’t say anything else. You are also not allowed to make notes or answer with ANYTHING except the translation.
+        #     4) Pay attention to the previous users message while translating
+        #     5) Do not greet me and do not explain translation
+        #     6) Do not respond as in mail format
+        #     7) You are forbidden to say 'Here is the translation of the provided text:'
+        #     8) You are not allowed to make any notes
+        #     Here is the previous message: {context}
+        #     Here is the Text: {text}
+        #     Some Examples for your task:
+        #     1 Example (English): User Input: Я космонавт. Your Answer: I am astronaut.
+        #     2 Example (English): User Input: Hallo! Ich heisse Misha. Your Answer: Hello! My name is Misha.
+        #     3 Example (Russian): User Input: Establishing a robust online presence is imperative for modern businesses to thrive in a competitive market landscape. Your Answer: Создание надежного онлайн-присутствия необходимо для современных бизнесов, чтобы процветать в конкурентной рыночной среде.
+        #     [/INST]
+        # """
+        return [
+            SystemMessage(f'''FOLLOW THIS INSTRUCTIONS VERY SRTRICTLY:
+                Your main task is to translate the following text into {language}. Follow this instructions while translating:
+                1) Keep in mind that this is a business talk and everything has to sound official
+                2) VERY IMPORTANT: You are only allowed to answer with the translation. Don’t say anything else. You are also not allowed to make notes or answer with ANYTHING except the translation.
+                3) Pay attention to the previous users message while translating
+                4) Start your message always with 'Translation:')
+                '''),
+            HumanMessage(f'''
+                         Here is the previous message: {context}
+                         Here is the Text: {text}''')
+        ]
