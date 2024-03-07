@@ -127,8 +127,8 @@ socket.on('new_message', (data) => {
                     {
                         text: sentence,
                         lang: data.tts_language
-                    }
-                )
+                        }
+                    )
                 })
 
             } else {
