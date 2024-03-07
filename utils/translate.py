@@ -19,18 +19,20 @@ def load_env() -> None:
 
 
 load_env()
+
 os.environ["TOGETHERAI_API_KEY"] = os.getenv('TOGETHER_TOKEN')
 
 
 class Translator:
     __GROQ_TOKEN: str = os.getenv('GROQ_TOKEN')
-    unnecessary_tokens: list[str] = ['---START---', '---END---']
     OpenChat: ChatLiteLLM = ChatLiteLLM(model="together_ai/mistralai/Mixtral-8x7B-Instruct-v0.1", verbose=True,
                                         handle_parsing_errors=True)
     OpenChat.model_kwargs = {
         "temperature": 0,
         "max_tokens": 256
     }
+    __START_TOKEN = '---START---'
+    __END_TOKEN = '---END---'
 
     @classmethod
     async def translate(cls,
@@ -70,6 +72,10 @@ class Translator:
         }
 
     @classmethod
+    def __get_slice(cls, text: str) -> slice:
+        return slice(text.find(cls.__START_TOKEN) + len(cls.__START_TOKEN) + 1, text.find(cls.__END_TOKEN) - 1)
+
+    @classmethod
     async def get_answer(
             cls,
             request: dict[str, str],
@@ -78,10 +84,15 @@ class Translator:
             sender: Participant,
             message_id: str,
             tts_language: str) -> str:
-        messages: list[BaseMessage] = cls.create_messages(language=request['language'], text=request['text'], context=request['context'])
-        word: str = cls.OpenChat(messages).content
-        for token in cls.unnecessary_tokens:
-            word = word.replace(token, '')
+
+        messages: list[BaseMessage] = cls.create_messages(
+            language=request['language'],
+            text=request['text'],
+            context=request['context']
+        )
+        raw_resp: str = cls.OpenChat(messages).content
+        trans_slice: slice = cls.__get_slice(text=raw_resp)
+        word: str = raw_resp[trans_slice]
 
         socketio.emit('new_message', {
             "id": message_id,
@@ -92,6 +103,7 @@ class Translator:
             "original": False,
             "tts_language": tts_language
         }, to=receiver.user_id)
+
         return word
 
     @classmethod
