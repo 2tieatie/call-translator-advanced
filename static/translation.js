@@ -121,12 +121,16 @@ socket.on('new_message', (data) => {
             if (window.speechSynthesis.speaking) {
                 const element = document.getElementById('vid_' + data.sender)
                 shadows.enqueue(element)
-                ttsQueue.enqueue(
+                const sentences = data.text.split(".");
+                sentences.forEach(function(sentence) {
+                    ttsQueue.enqueue(
                     {
-                        text: data.text,
+                        text: sentence,
                         lang: data.tts_language
                     }
                 )
+                })
+
             } else {
                 console.log(msg)
                 window.speechSynthesis.speak(msg);
@@ -174,12 +178,12 @@ function downloadChatHistory(room_id, user_id) {
 }
 
 msg.onstart = function (event) {
-    console.log(shadows)
+    // console.log(shadows)
     // shadows.front().style.boxShadow = "0 0 20px 5px #faaf3f";
 };
 
 msg.onend = function (event) {
-    shadows.dequeue()
+    // shadows.dequeue()
     console.log(ttsQueue.size())
     if (ttsQueue.size()) {
         msg.text = ttsQueue.front().text

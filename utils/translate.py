@@ -73,7 +73,7 @@ class Translator:
 
     @classmethod
     def __get_slice(cls, text: str) -> slice:
-        return slice(text.find(cls.__START_TOKEN) + len(cls.__START_TOKEN) + 1, text.find(cls.__END_TOKEN) - 1)
+        return slice(text.find(cls.__START_TOKEN) + len(cls.__START_TOKEN) + 1, text.find(cls.__END_TOKEN))
 
     @classmethod
     async def get_answer(
