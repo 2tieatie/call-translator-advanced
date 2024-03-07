@@ -1,6 +1,7 @@
 import asyncio
+from threading import Thread
 from typing import Any
-
+import trio
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from languages.get_languages import names
@@ -154,11 +155,12 @@ def new_recording(data):
     if message_type == 'part':
         handle_message_part(data=data)
     else:
-        try:
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(async_new_recording(data))
-        except Exception as ex:
-            print(ex)
+        # try:
+        # thread = Thread(target=async_new_recording, args=(data,), daemon=True)
+        # thread.start()
+        asyncio.run(async_new_recording(data))
+        # except Exception as ex:
+        #     print(ex)
 
 
 async def async_new_recording(data):
@@ -167,10 +169,7 @@ async def async_new_recording(data):
     speech = data['speech']
     message_id = data['id']
     last_recording = data['last_recording']
-    first_checkpoint = data['firstCheckpoint'] / 1000
-    time_log('(SMTMS WRONG!) Data received', first_checkpoint)
     new_data = {'status': 'succeeded', 'text': speech}
-    first_checkpoint = time.time()
     time_from_last_recording = last_recording / 1000
     context = get_last_messages_by_user_id(room_id=room_id, user_id=user_id, rooms=rooms)
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
@@ -179,12 +178,8 @@ async def async_new_recording(data):
         return
     receivers_languages: dict[Participant, dict[str, str]] = {}
     get_participants_languages(receivers=receivers, receivers_languages=receivers_languages)
-    time_log('Got required data from storage', first_checkpoint)
     await prepare_translated_data(data=new_data, context=context, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms, time_gap=time_from_last_recording, socketio=socketio, message_id=message_id)
-    # if translation_results:
-    #     translation_results['sender'] = sender.user_id
-    #     socketio.emit('new_message', translation_results, room=room_id)
-    time_log('Translated and sent result', first_checkpoint)
+    return 1
 
 
 @app.route('/get_chat_history', methods=['GET'])
