@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
@@ -154,7 +155,8 @@ def new_recording(data):
         handle_message_part(data=data)
     else:
         try:
-            asyncio.run(async_new_recording(data))
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(async_new_recording(data))
         except Exception as ex:
             print(ex)
 
