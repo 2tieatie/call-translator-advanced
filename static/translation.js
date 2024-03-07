@@ -121,15 +121,16 @@ socket.on('new_message', (data) => {
             if (window.speechSynthesis.speaking) {
                 const element = document.getElementById('vid_' + data.sender)
                 shadows.enqueue(element)
-                const sentences = data.text.split(".");
-                sentences.forEach(function(sentence) {
-                    ttsQueue.enqueue(
+                ttsQueue.enqueue(
                     {
                         text: sentence,
                         lang: data.tts_language
-                        }
-                    )
-                })
+                        })
+                // const sentences = data.text.split(".");
+                // sentences.forEach(function(sentence) {
+                //
+                //     )
+                // })
 
             } else {
                 console.log(msg)
