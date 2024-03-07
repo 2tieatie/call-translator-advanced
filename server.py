@@ -153,12 +153,12 @@ def new_recording(data):
     if message_type == 'part':
         handle_message_part(data=data)
     else:
-        # try:
+        try:
         # thread = Thread(target=async_new_recording, args=(data,), daemon=True)
         # thread.start()
-        asyncio.run(async_new_recording(data))
-        # except Exception as ex:
-        #     print(ex)
+            asyncio.run(async_new_recording(data))
+        except Exception as ex:
+            print(ex)
 
 
 async def async_new_recording(data):
