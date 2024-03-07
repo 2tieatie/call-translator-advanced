@@ -5,8 +5,8 @@ let chunks = []
 let lastRecordingTimeDelta
 // const gap = 400 // ДЛИНА ТИШИНЫ (В мс), ПРИ КОТОРОЙ ОСТАНАВЛИВАТЬ ЗАПИСЬ
 let msg = new SpeechSynthesisUtterance();
-msg.rate = 1.4;
-msg.pitch = 0.75;
+msg.rate = 1.25;
+msg.pitch = 0.85;
 let shadows = new Queue()
 let ttsQueue = new Queue()
 let t
