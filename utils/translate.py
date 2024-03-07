@@ -12,7 +12,7 @@ from langchain_core.messages.base import BaseMessage
 from flask_socketio import SocketIO
 
 
-def load_env():
+def load_env() -> None:
     dotenv_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'config.env')
     print(dotenv_path)
     load_dotenv(dotenv_path)
@@ -22,32 +22,11 @@ load_env()
 os.environ["TOGETHERAI_API_KEY"] = os.getenv('TOGETHER_TOKEN')
 
 
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system",
-         """
-             Your main task is to translate the following text of a “business call part” into {language}. Follow this instructions while translating:
-             1) If semicolon's needed, place them in the right place. 
-             2) Keep in mind that this is a business talk and everything has to sound official
-             3) VERY IMPORTANT: You are only allowed to answer with the translation. Don’t say anything else. You are also not allowed to make notes or answer with ANYTHING except the translation.
-             4) Pay attention to the previous users message while translating
-         """),
-        ("human",
-         """
-             Here is the previous message: {context}
-             Here is the Text: {text}
-         """)
-    ]
-)
-
-
 class Translator:
-    __GROQ_TOKEN = os.getenv('GROQ_TOKEN')
-    __groq = ChatGroq(temperature=0.25, groq_api_key=__GROQ_TOKEN, model_name="mixtral-8x7b-32768")
-    unnecessary_tokens = ['---START---', '---END---']
-    chain = prompt | __groq
-    OpenChat = ChatLiteLLM(model="together_ai/mistralai/Mixtral-8x7B-Instruct-v0.1", verbose=True,
-                           handle_parsing_errors=True)
+    __GROQ_TOKEN: str = os.getenv('GROQ_TOKEN')
+    unnecessary_tokens: list[str] = ['---START---', '---END---']
+    OpenChat: ChatLiteLLM = ChatLiteLLM(model="together_ai/mistralai/Mixtral-8x7B-Instruct-v0.1", verbose=True,
+                                        handle_parsing_errors=True)
     OpenChat.model_kwargs = {
         "temperature": 0,
         "max_tokens": 256
@@ -77,10 +56,18 @@ class Translator:
             "context": context,
             "text": text
         }
-        result: str = await cls.get_answer(request=request, socketio=socketio, receiver=receiver, sender=sender, message_id=message_id, tts_language=tts_language)
+        result: str = await cls.get_answer(
+            request=request, socketio=socketio, receiver=receiver,
+            sender=sender, message_id=message_id, tts_language=tts_language
+        )
+
         print(result)
-        return {'status': 'success', 'original_text': text,
-                'translated_text': result, 'receiver': receiver}
+        return {
+            'status': 'success',
+            'original_text': text,
+            'translated_text': result,
+            'receiver': receiver
+        }
 
     @classmethod
     async def get_answer(
