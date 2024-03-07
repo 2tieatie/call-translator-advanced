@@ -93,7 +93,11 @@ class Translator:
         raw_resp: str = cls.OpenChat(messages).content
         trans_slice: slice = cls.__get_slice(text=raw_resp)
         word: str = raw_resp[trans_slice]
-
+        word = word[:word.find('['):]
+        word = word[:word.find('('):]
+        word = word.replace('"', '')
+        word = word.strip()
+        print(word)
         socketio.emit('new_message', {
             "id": message_id,
             "text": word,
