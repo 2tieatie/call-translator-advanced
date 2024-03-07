@@ -75,7 +75,6 @@ tiktoken==0.6.0
 together==0.2.11
 tokenizers==0.15.2
 tqdm==4.66.2
-trio==0.24.0
 typer==0.9.0
 typing-inspect==0.9.0
 typing_extensions==4.10.0
