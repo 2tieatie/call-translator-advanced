@@ -137,6 +137,11 @@ video {
     transition: box-shadow 0.5s ease-in-out;
 }
 
+.remoteVideo {
+    min-height: 40vh;
+    min-width: 40vh;
+}
+
 .video-container {
     border-radius: 7px;
 }
@@ -232,6 +237,10 @@ select:hover {
 }
 .vid-wrapper {
     background-color: rgba(255, 255, 255, 0);
+    /*height: 100%;*/
+    /*min-height: 50vh;*/
+    /*min-width: 50vh;*/
+    /*max-height: 20vh;*/
 }
 
 .container-1 {

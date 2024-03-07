@@ -1,6 +1,7 @@
 let myVideo;
 const recognition = new webkitSpeechRecognition() || new SpeechRecognition();
 let audioM = true
+let f_time = true
 document.addEventListener("DOMContentLoaded", (event)=>{
     myVideo = document.getElementById("local_vid");
     myVideo.onloadeddata = ()=>{console.log("W,H: ", myVideo.videoWidth, ", ", myVideo.videoHeight);};
@@ -36,7 +37,7 @@ function makeVideoElement(element_id, display_name)
 
     wrapper_div.id = "div_"+element_id;
     vid.id = "vid_"+element_id;
-
+    vid.className = 'remoteVideo'
     wrapper_div.className = "remoteVideo video-item";
     vid_wrapper.className = "vid-wrapper";
     vid_wrapper.id = "vidwr_"+element_id;
@@ -85,9 +86,33 @@ function setAudioMuteState(flag)
     audioM = flag
     document.getElementById("mute_icon").innerText = (flag)? "mic_off": "mic";
 }
+function stopVideoOnly(stream) {
+    stream.getVideoTracks().forEach((track) => {
+        track.stop();
+        track.enabled = false
+    });
+}
 function setVideoMuteState(flag)
 {
     let local_stream = myVideo.srcObject;
-    local_stream.getVideoTracks().forEach((track)=>{track.enabled = !flag;});
     document.getElementById("vid_mute_icon").innerText = (flag)? "videocam_off": "videocam";
+    local_stream.getVideoTracks().forEach((track)=>{track.enabled = !flag;});
+
+    // if (flag) {
+    //     console.log('aa')
+    //     stopVideoOnly(myVideo.srcObject)
+    // }
+    // else {
+    //     if (!f_time) {
+    //         console.log('1111')
+    //         navigator.mediaDevices.getUserMedia({ video: true })
+    //         .then(stream => {
+    //         myVideo.srcObject = stream;
+    //         myVideo.srcObject.getVideoTracks().forEach( track => {
+    //             track.enabled = true
+    //         });
+    //     })
+    //     }
+    // }
+    // f_time = false
 }
