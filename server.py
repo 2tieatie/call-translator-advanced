@@ -153,15 +153,10 @@ def new_recording(data):
     if message_type == 'part':
         handle_message_part(data=data)
     else:
-        try:
-        # thread = Thread(target=async_new_recording, args=(data,), daemon=True)
-        # thread.start()
-            asyncio.run(async_new_recording(data))
-        except Exception as ex:
-            print(ex)
+        async_new_recording(data=data)
 
 
-async def async_new_recording(data):
+def async_new_recording(data):
     user_id = request.sid
     room_id = data['room_id']
     speech = data['speech']
@@ -176,8 +171,7 @@ async def async_new_recording(data):
         return
     receivers_languages: dict[Participant, dict[str, str]] = {}
     get_participants_languages(receivers=receivers, receivers_languages=receivers_languages)
-    await prepare_translated_data(data=new_data, context=context, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms, time_gap=time_from_last_recording, socketio=socketio, message_id=message_id)
-    return 1
+    prepare_translated_data(data=new_data, context=context, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms, time_gap=time_from_last_recording, socketio=socketio, message_id=message_id)
 
 
 @app.route('/get_chat_history', methods=['GET'])

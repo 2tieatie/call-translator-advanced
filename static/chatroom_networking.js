@@ -164,7 +164,9 @@ function start_webrtc()
 
 function invite(peer_id)
 {
-    if(_peer_list[peer_id]){console.log("[Not supposed to happen!] Attempting to start a connection that already exists!")}
+    if(_peer_list[peer_id]){
+        console.log("[Not supposed to happen!] Attempting to start a connection that already exists!")
+    }
     else if(peer_id === myID){console.log("[Not supposed to happen!] Trying to connect to self!");}
     else
     {

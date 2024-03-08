@@ -1,4 +1,5 @@
 import asyncio
+import threading
 import time
 from models.models import Room, Participant, Message
 import os
@@ -81,17 +82,29 @@ def get_participants_languages(receivers: list[Participant], receivers_languages
         receivers_languages[receiver]['gtts'] = get_language(receiver.language, 'gtts')
 
 
-async def prepare_translated_data(data: dict[str, str], context: str, receivers_languages: dict[Participant], sender: Participant, room_id: str, rooms: list[Room], time_gap: float, socketio, message_id: str):
+def prepare_translated_data(data: dict[str, str], context: str, receivers_languages: dict[Participant],
+                            sender: Participant, room_id: str, rooms: list[Room], time_gap: float, socketio,
+                            message_id: str):
     room = get_room_by_id(room_id=room_id, rooms=rooms)
     translation_results = {}
     if data['status'] == 'succeeded':
-        tasks = []
+        results: list[dict[str, str | Participant]] = []
+        threads = []
         for receiver in receivers_languages.keys():
             if receiver.language != sender.language:
-                tasks.append(Translator.translate(status=data['status'], text=data['text'], receiver=receiver, sender=sender, context=context, socketio=socketio, message_id=message_id, tts_language=receivers_languages[receiver]['gtts']))
-        results = await asyncio.gather(*tasks)
+                thread = threading.Thread(
+                    target=Translator.translate,
+                    args=(data['status'], data['text'], receiver, sender, context, socketio, message_id,
+                          receivers_languages[receiver]['gtts'], results)
+                )
+                threads.append(thread)
+                thread.start()
+        for thread in threads:
+            thread.join()
+
         for result in results:
             if result['status'] == 'success':
+                socketio.emit('new_message', result['data'], to=result['receiver'].user_id)
                 receiver = result['receiver']
                 result['name'] = sender.username
                 result['gtts_language'] = receivers_languages[receiver]['gtts']

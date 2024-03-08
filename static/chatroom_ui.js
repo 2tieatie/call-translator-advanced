@@ -85,11 +85,14 @@ function setAudioMuteState(flag)
     local_stream.getAudioTracks().forEach((track)=>{track.enabled = !flag;});
     audioM = flag
     document.getElementById("mute_icon").innerText = (flag)? "mic_off": "mic";
+    if (!flag) {
+        recognition.start()
+    }
 }
 function stopVideoOnly(stream) {
     stream.getVideoTracks().forEach((track) => {
         track.stop();
-        track.enabled = false
+        // track.enabled = false
     });
 }
 function setVideoMuteState(flag)
@@ -98,21 +101,21 @@ function setVideoMuteState(flag)
     document.getElementById("vid_mute_icon").innerText = (flag)? "videocam_off": "videocam";
     local_stream.getVideoTracks().forEach((track)=>{track.enabled = !flag;});
 
-    // if (flag) {
-    //     console.log('aa')
-    //     stopVideoOnly(myVideo.srcObject)
-    // }
-    // else {
-    //     if (!f_time) {
-    //         console.log('1111')
-    //         navigator.mediaDevices.getUserMedia({ video: true })
-    //         .then(stream => {
-    //         myVideo.srcObject = stream;
-    //         myVideo.srcObject.getVideoTracks().forEach( track => {
-    //             track.enabled = true
-    //         });
-    //     })
-    //     }
-    // }
-    // f_time = false
+    if (flag) {
+        console.log('aa')
+        stopVideoOnly(myVideo.srcObject)
+    } else {
+        if (!f_time) {
+            console.log('1111')
+            navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+            myVideo.srcObject = stream;
+            myVideo.srcObject.getVideoTracks().forEach( track => {
+                track.enabled = true
+            });
+        })
+        start_webrtc()
+        }
+    }
+    f_time = false
 }

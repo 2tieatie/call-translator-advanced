@@ -35,16 +35,16 @@ class Translator:
     __END_TOKEN = '---END---'
 
     @classmethod
-    async def translate(cls,
-                        status: str,
-                        text: str,
-                        receiver: Participant,
-                        sender: Participant,
-                        context: str,
-                        socketio:
-                        SocketIO,
-                        message_id: str,
-                        tts_language: str) -> dict[str, str | Participant]:
+    def translate(cls,
+                  status: str,
+                  text: str,
+                  receiver: Participant,
+                  sender: Participant,
+                  context: str,
+                  socketio: SocketIO,
+                  message_id: str,
+                  tts_language: str,
+                  results: list[dict[str, str | Participant]]) -> None:
 
         if status != 'succeeded':
             return {'status': 'error'}
@@ -58,32 +58,34 @@ class Translator:
             "context": context,
             "text": text
         }
-        result: str = await cls.get_answer(
+        data: dict[str, str | bool] = cls.get_answer(
             request=request, socketio=socketio, receiver=receiver,
             sender=sender, message_id=message_id, tts_language=tts_language
         )
 
-        print(result)
-        return {
-            'status': 'success',
-            'original_text': text,
-            'translated_text': result,
-            'receiver': receiver
-        }
+        results.append(
+            {
+                'status': 'success',
+                'original_text': text,
+                'translated_text': data['text'],
+                'receiver': receiver,
+                'data': data
+            }
+        )
 
     @classmethod
     def __get_slice(cls, text: str) -> slice:
         return slice(text.find(cls.__START_TOKEN) + len(cls.__START_TOKEN) + 1, text.find(cls.__END_TOKEN))
 
     @classmethod
-    async def get_answer(
+    def get_answer(
             cls,
             request: dict[str, str],
             socketio: SocketIO,
             receiver: Participant,
             sender: Participant,
             message_id: str,
-            tts_language: str) -> str:
+            tts_language: str) -> dict[str, str | bool]:
 
         messages: list[BaseMessage] = cls.create_messages(
             language=request['language'],
@@ -98,7 +100,7 @@ class Translator:
         word = word.replace('"', '')
         word = word.strip()
         print(word)
-        socketio.emit('new_message', {
+        data: dict[str, str | bool] = {
             "id": message_id,
             "text": word,
             "type": "part",
@@ -106,9 +108,9 @@ class Translator:
             "name": sender.username,
             "original": False,
             "tts_language": tts_language
-        }, to=receiver.user_id)
-
-        return word
+        }
+        print(data)
+        return data
 
     @classmethod
     def create_messages(cls,

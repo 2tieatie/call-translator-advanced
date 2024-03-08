@@ -113,7 +113,7 @@ recognition.onend = () =>  {
 
 socket.on('new_message', (data) => {
     appendMessage(data.id, data.text, data.original, data.type, data.name)
-
+    console.log(data)
     if (!data.original){
         msg.text = data.text
         msg.lang = data.tts_language
