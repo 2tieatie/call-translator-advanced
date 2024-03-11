@@ -13,7 +13,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = "thisismys3cr3tk3y"
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 socketio = SocketIO(app, async_mode='eventlet', max_http_buffer_size=500 * 1024 * 1024)
-
+STEP = int(os.getenv('STEP'))
 
 _users_in_room = {}
 _room_of_sid = {}
@@ -149,7 +149,8 @@ def get_languages():
 @socketio.on("new_recording")
 def new_recording(data):
     message_type = data['type']
-    print(message_type, data)
+    # if len(data['speech'].split()) % STEP == 0 or data['type'] == 'end':
+    #     print(data['speech'])
     if message_type == 'part':
         handle_message_part(data=data)
     else:
@@ -161,17 +162,21 @@ def async_new_recording(data):
     room_id = data['room_id']
     speech = data['speech']
     message_id = data['id']
-    last_recording = data['last_recording']
-    new_data = {'status': 'succeeded', 'text': speech}
-    time_from_last_recording = last_recording / 1000
-    context = get_last_messages_by_user_id(room_id=room_id, user_id=user_id, rooms=rooms)
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
-    if not sender and not receivers:
+    if not sender or not receivers:
+        print('ADSASDASD')
         return
     receivers_languages: dict[Participant, dict[str, str]] = {}
     get_participants_languages(receivers=receivers, receivers_languages=receivers_languages)
-    prepare_translated_data(data=new_data, context=context, sender=sender, receivers_languages=receivers_languages, room_id=room_id, rooms=rooms, time_gap=time_from_last_recording, socketio=socketio, message_id=message_id)
+    prepare_translated_data(
+        text=speech,
+        sender=sender,
+        receivers_languages=receivers_languages,
+        room_id=room_id,
+        rooms=rooms,
+        message_id=message_id
+    )
 
 
 @app.route('/get_chat_history', methods=['GET'])

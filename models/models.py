@@ -9,17 +9,25 @@ class Participant:
 
 
 class Message:
-    def __init__(self, message_id: str, sender: Participant, receiver: Participant, original_text: str, translated_text: str, time_gap: float):
+    def __init__(self, message_id: str, sender: Participant, original_text: str):
         self.id: str = message_id
         self.sender: Participant = sender
         self.sender_language: str = sender.language
-        self.receiver: Participant = receiver
+        self.receivers: list[Participant] = list()
         self.original_text: str = original_text
-        self.translated_text: str = translated_text
-        self.time_gap: float = time_gap
+        self.translated: dict = dict()
 
-    def __str__(self):
+    def change_original_text(self, text: str) -> None:
+        self.original_text = text
+
+    def add_receiver(self, receiver: Participant) -> None:
+        self.receivers.append(receiver)
+
+    def __str__(self) -> str:
         return f'Message <sender: {self.sender}, receiver: {self.receiver}, original text: {self.original_text}, translated text: {self.translated_text}>'
+
+    def add_translation(self, language: str, text: str) -> None:
+        self.translated[language] = text
 
 
 class Room:
@@ -51,6 +59,12 @@ class Room:
             self.participants.remove(participant)
         if self.languages.get(participant.language):
             self.languages[participant.language].remove(participant)
+
+    def get_message(self, message_id: str):
+        for message in self.messages:
+            if message.id == message_id:
+                return message
+        return None
 
     def __add_language(self, participant: Participant):
         if participant.language in self.languages.keys():

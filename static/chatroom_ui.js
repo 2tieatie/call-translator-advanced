@@ -100,22 +100,22 @@ function setVideoMuteState(flag)
     let local_stream = myVideo.srcObject;
     document.getElementById("vid_mute_icon").innerText = (flag)? "videocam_off": "videocam";
     local_stream.getVideoTracks().forEach((track)=>{track.enabled = !flag;});
-
-    if (flag) {
-        console.log('aa')
-        stopVideoOnly(myVideo.srcObject)
-    } else {
-        if (!f_time) {
-            console.log('1111')
-            navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-            myVideo.srcObject = stream;
-            myVideo.srcObject.getVideoTracks().forEach( track => {
-                track.enabled = true
-            });
-        })
-        start_webrtc()
-        }
-    }
-    f_time = false
+    //
+    // if (flag) {
+    //     console.log('aa')
+    //     stopVideoOnly(myVideo.srcObject)
+    // } else {
+    //     if (!f_time) {
+    //         console.log('1111')
+    //         navigator.mediaDevices.getUserMedia({ video: true })
+    //         .then(stream => {
+    //         myVideo.srcObject = stream;
+    //         myVideo.srcObject.getVideoTracks().forEach( track => {
+    //             track.enabled = true
+    //         });
+    //     })
+    //     start_webrtc()
+    //     }
+    // }
+    // f_time = false
 }

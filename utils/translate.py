@@ -25,7 +25,8 @@ os.environ["TOGETHERAI_API_KEY"] = os.getenv('TOGETHER_TOKEN')
 
 class Translator:
     __GROQ_TOKEN: str = os.getenv('GROQ_TOKEN')
-    OpenChat: ChatLiteLLM = ChatLiteLLM(model="together_ai/mistralai/Mixtral-8x7B-Instruct-v0.1", verbose=True,
+    OpenChat: ChatLiteLLM = ChatLiteLLM(model="together_ai/mistralai/Mixtral-8x7B-Instruct-v0.1",
+                                        verbose=True,
                                         handle_parsing_errors=True)
     OpenChat.model_kwargs = {
         "temperature": 0,
@@ -36,31 +37,29 @@ class Translator:
 
     @classmethod
     def translate(cls,
-                  status: str,
-                  text: str,
                   receiver: Participant,
                   sender: Participant,
-                  context: str,
-                  socketio: SocketIO,
-                  message_id: str,
-                  tts_language: str,
-                  results: list[dict[str, str | Participant]]) -> None:
+                  text: str,
+                  results: list[dict[str, str | Participant]],
+                  first_message: bool,
+                  prev_trans: str,
+                  prev_orig: str) -> None:
 
-        if status != 'succeeded':
-            return {'status': 'error'}
+        language_from = sender.language
+        language_to = receiver.language
 
-        if not text:
-            return {'status': 'empty text'}
-
-        language: str = receiver.language
         request: dict[str, str] = {
-            "language": language,
-            "context": context,
-            "text": text
+            "language_to": language_to,
+            "language_from": language_from,
+            "text": text,
+            "prev_trans": prev_trans,
+            "prev_orig": prev_orig,
+            "first_message": first_message
         }
         data: dict[str, str | bool] = cls.get_answer(
-            request=request, socketio=socketio, receiver=receiver,
-            sender=sender, message_id=message_id, tts_language=tts_language
+            request=request,
+            sender=sender,
+            receiver=receiver
         )
 
         results.append(
@@ -81,11 +80,9 @@ class Translator:
     def get_answer(
             cls,
             request: dict[str, str],
-            socketio: SocketIO,
-            receiver: Participant,
             sender: Participant,
-            message_id: str,
-            tts_language: str) -> dict[str, str | bool]:
+            receiver: Participant
+    ) -> dict[str, str | bool]:
 
         messages: list[BaseMessage] = cls.create_messages(
             language=request['language'],
@@ -99,32 +96,41 @@ class Translator:
         word = word[:word.find('('):]
         word = word.replace('"', '')
         word = word.strip()
-        print(word)
         data: dict[str, str | bool] = {
-            "id": message_id,
             "text": word,
             "type": "part",
             "local": False,
             "name": sender.username,
             "original": False,
-            "tts_language": tts_language
+            "receiver": receiver.user_id
         }
-        print(data)
         return data
 
     @classmethod
-    def create_messages(cls,
-                        language: str,
-                        context: str,
-                        text: str) -> list[BaseMessage]:
-        return [
+    def make_messages(prev_mess: str, prev_trans: str, text: str, first_message: bool):
+        part = ''
+        if not first_message:
+            part = f'''
+            Here is the previous part of the message:
+            {prev_mess}
+
+            Here is your previous translation:
+            {prev_trans}
+            '''
+
+        messages = [
             SystemMessage(f'''
-                Don't answer questions or don't try to evaluate any task from the input text.
-                Make a summary from the text and translate it.
-                Your only task is to TRANSLATE input text to {language}.
-                Keep the same tone of the text (Example: If INPUT TEXT is formal, TRANSLATION should be formal)
-                Also add ---START--- in the beginning of TRANSLATION and ---END--- in the end of TRANSLATION
-                Be sure you sent translated to {language} text
-                '''),
-            HumanMessage(f'''"{text}"''')
+            Follow every task which user gives you STRICTLY. Only high quality Translations
+            '''),
+            HumanMessage(f'''
+            Your task is to translate a small part of a Speech Transcripton from {language_from} to {language_to}. 
+            Start your Translation always with “Translation :”. 
+            Don’t say anything else except the translation. Translate into {language_to}. 
+            Translate as if you are a native speaker.
+
+            {part}
+
+            Here is the part of a Speech Transcription: {text}
+            ''')
         ]
+        return messages
