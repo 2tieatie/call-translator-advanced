@@ -149,15 +149,15 @@ def get_languages():
 @socketio.on("new_recording")
 def new_recording(data):
     message_type = data['type']
-    # if len(data['speech'].split()) % STEP == 0 or data['type'] == 'end':
-    #     print(data['speech'])
-    if message_type == 'part':
-        handle_message_part(data=data)
-    else:
+    if (len(data['speech'].split()) - 1) % STEP == 0 or message_type == 'end':
+        if message_type != 'end':
+            data['speech'] = ' '.join(data['speech'].split()[:-1:])
         async_new_recording(data=data)
+    else:
+        handle_message_part(data=data)
 
 
-def async_new_recording(data):
+def async_new_recording(data) -> None:
     user_id = request.sid
     room_id = data['room_id']
     speech = data['speech']
@@ -165,11 +165,10 @@ def async_new_recording(data):
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
     if not sender or not receivers:
-        print('ADSASDASD')
         return
     receivers_languages: dict[Participant, dict[str, str]] = {}
     get_participants_languages(receivers=receivers, receivers_languages=receivers_languages)
-    prepare_translated_data(
+    results = prepare_translated_data(
         text=speech,
         sender=sender,
         receivers_languages=receivers_languages,
@@ -177,6 +176,14 @@ def async_new_recording(data):
         rooms=rooms,
         message_id=message_id
     )
+    room: Room = get_room_by_id(room_id=room_id, rooms=rooms)
+    message: Message = room.get_message(message_id=message_id)
+    for result in results:
+        print(result)
+        result['data']['id'] = message.id
+        socketio.emit('new_message', result['data'], to=result['receiver'].user_id)
+        message.original_text = result['original_text']
+        message.add_translation(language=result['receiver'].language, text=result['translated_text'])
 
 
 @app.route('/get_chat_history', methods=['GET'])
@@ -194,7 +201,6 @@ def get_chat_history_serv():
 def get_language_code(user_id: str, room_id: str):
     user = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     if user:
-        print(user)
         language_code = get_language(user.language, 'js')
         return jsonify({'languageCode': language_code})
     return jsonify({})

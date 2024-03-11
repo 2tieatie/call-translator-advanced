@@ -2,7 +2,7 @@ import asyncio
 import threading
 import time
 from pprint import pprint
-from typing import Any
+from typing import Any, List, Dict
 
 from flask_socketio import SocketIO
 
@@ -94,25 +94,28 @@ def prepare_translated_data(
         room_id: str,
         rooms: list[Room],
         message_id: str
-) -> dict[str, Any]:
-    room = get_room_by_id(room_id=room_id, rooms=rooms)
-    message = room.get_message(message_id=message_id)
-    first_message = False
+) -> list[dict[str, str]]:
+    room: Room = get_room_by_id(room_id=room_id, rooms=rooms)
+    message: Message = room.get_message(message_id=message_id)
+
+    if message.original_text == text:
+        return []
+
+    first_message: bool = False
+
     if not message:
-        message = Message(sender=sender,
-                          original_text=text,
-                          message_id=message_id)
+        message: Message = Message(sender=sender, original_text=text, message_id=message_id)
         room.add_message(message)
         first_message = True
 
-    translation_results = {}
     results: list[dict[str, str]] = []
-    threads = []
+    threads: list[threading.Thread] = []
+
     for receiver in receivers_languages.keys():
         if receiver.language != sender.language:
             prev_trans = message.translated.get(receiver.language)
             prev_orig = message.original_text
-            thread = threading.Thread(
+            thread: threading.Thread = threading.Thread(
                 target=Translator.translate,
                 args=(
                     receiver,
@@ -130,8 +133,7 @@ def prepare_translated_data(
     for thread in threads:
         thread.join()
 
-    for result in results:
-        pprint(result)
+    return results
     # if data['status'] == 'succeeded':
     #     results: list[dict[str, str | Participant]] = []
     #     threads = []
@@ -158,20 +160,20 @@ def prepare_translated_data(
     #     for result in results:
     #         if result['status'] == 'success':
     #             print(result)
-        #         socketio.emit('new_message', result['data'], to=result['receiver'].user_id)
-        #         receiver = result['receiver']
-        #         result['name'] = sender.username
-        #         result['gtts_language'] = receivers_languages[receiver]['gtts']
-        #         del result['receiver']
-        #         print(result)
-        #         translation_results[receiver.user_id] = result
-        #         message = Message(sender=sender,
-        #                           receiver=receiver,
-        #                           original_text=result['original_text'],
-        #                           time_gap=time_gap,
-        #                           message_id=message_id)
-        #         message.add_translation(language=receiver.language, text=result['translated_text'])
-        #         room.add_message(message)
+    #         socketio.emit('new_message', result['data'], to=result['receiver'].user_id)
+    #         receiver = result['receiver']
+    #         result['name'] = sender.username
+    #         result['gtts_language'] = receivers_languages[receiver]['gtts']
+    #         del result['receiver']
+    #         print(result)
+    #         translation_results[receiver.user_id] = result
+    #         message = Message(sender=sender,
+    #                           receiver=receiver,
+    #                           original_text=result['original_text'],
+    #                           time_gap=time_gap,
+    #                           message_id=message_id)
+    #         message.add_translation(language=receiver.language, text=result['translated_text'])
+    #         room.add_message(message)
     # return translation_results
 
 

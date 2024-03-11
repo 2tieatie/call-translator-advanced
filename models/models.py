@@ -24,7 +24,7 @@ class Message:
         self.receivers.append(receiver)
 
     def __str__(self) -> str:
-        return f'Message <sender: {self.sender}, receiver: {self.receiver}, original text: {self.original_text}, translated text: {self.translated_text}>'
+        return f'Message <id: {self.id}, sender: {self.sender}, original text: {self.original_text}>'
 
     def add_translation(self, language: str, text: str) -> None:
         self.translated[language] = text
