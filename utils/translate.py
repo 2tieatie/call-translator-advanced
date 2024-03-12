@@ -57,13 +57,13 @@ class Translator:
         )
         print('Prev Trans:', prev_trans)
 
-        data['text'] = f'{prev_trans if prev_trans else ""}{data['text']}'
+        translated_text = f'{prev_trans if prev_trans else ""}{data['text']}'
 
         results.append(
             {
                 'status': 'success',
                 'original_text': text,
-                'translated_text': data['text'],
+                'translated_text': translated_text,
                 'receiver': receiver,
                 'data': data
             }

@@ -322,7 +322,7 @@ let appendMessage = (id, text, original, type, username) => {
         let textElement = document.getElementById('trans_' + id)
         if (textElement !== null) {
             // textElement.innerText = textElement.innerText + text
-            textElement.innerText = text
+            textElement.innerText += ' ' + text
 
         } else {
             console.log(textElement)
