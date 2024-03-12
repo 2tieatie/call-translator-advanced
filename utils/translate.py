@@ -4,7 +4,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from models.models import Participant
 from langchain_community.chat_models import ChatLiteLLM
 from langchain_core.messages.base import BaseMessage
-
+from languages.get_languages import get_language
 
 def load_env() -> None:
     dotenv_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'config.env')
@@ -93,13 +93,17 @@ class Translator:
 
         response = response.strip() + ' '
         print('Translated:', response)
+
+        tts_lang = get_language(receiver.language, 'gtts')
+
         data: dict[str, str | bool] = {
             "text": response,
             "type": "part",
             "local": False,
             "name": sender.username,
             "original": False,
-            "receiver": receiver.user_id
+            "receiver": receiver.user_id,
+            "tts_language": tts_lang,
         }
 
         return data

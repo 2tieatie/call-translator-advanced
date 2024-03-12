@@ -180,7 +180,6 @@ def async_new_recording(data) -> None:
     user_id = request.sid
     speech = data['speech']
 
-
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
 
@@ -206,6 +205,7 @@ def async_new_recording(data) -> None:
         # pprint(result)
         # print('-' * 99)
         result['data']['id'] = message.id
+        pprint(result['data'])
         socketio.emit('new_message', result['data'], to=result['receiver'].user_id)
         message.add_translation(language=result['receiver'].language, text=result['translated_text'])
 

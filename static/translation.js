@@ -112,24 +112,31 @@ recognition.onend = () =>  {
 
 
 socket.on('new_message', (data) => {
-    appendMessage(data.id, data.text, data.original, data.type, data.name)
-    console.log(data)
+    // console.log(data)
+    let text = data.text
+    const toReplace = document.getElementById('trans_' + data.id)
+    if (toReplace) {
+        console.log("To replace:", toReplace.innerText)
+        text = text.replace(toReplace.innerText, '')
+        console.log(text)
+    }
     if (!data.original){
-        msg.text = data.text
+        msg.text = text
         msg.lang = data.tts_language
         if ('speechSynthesis' in window) {
             if (window.speechSynthesis.speaking) {
                 const element = document.getElementById('vid_' + data.sender)
                 shadows.enqueue(element)
-                const sentences = data.text.split(".");
-                sentences.forEach(function(sentence) {
-                    ttsQueue.enqueue(
-                    {
-                        text: sentence,
-                        lang: data.tts_language
-                        }
-                    )
-                })
+
+                // const sentences = data.text.split(".");
+                // sentences.forEach(function(sentence) {
+                ttsQueue.enqueue(
+                {
+                    text: text,
+                    lang: data.tts_language
+                    }
+                )
+                // })
 
             } else {
                 console.log(msg)
@@ -140,7 +147,8 @@ socket.on('new_message', (data) => {
             console.log('Web Speech API does not support in this browser.');
         }
     }
-
+    console.log("TTS:", text)
+    appendMessage(data.id, data.text, data.original, data.type, data.name)
 })
 
 let getParticipantsWithOtherLanguages = () => {

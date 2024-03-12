@@ -310,7 +310,7 @@ let addMessage = (local, username, original_text, id) => {
 }
 
 let appendMessage = (id, text, original, type, username) => {
-    console.log(id)
+    // console.log(id)
     if (original) {
         const textElement = document.getElementById('orig_' + id)
         if (textElement) {
