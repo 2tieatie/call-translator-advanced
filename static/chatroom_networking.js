@@ -320,9 +320,12 @@ let appendMessage = (id, text, original, type, username) => {
         }
     } else {
         let textElement = document.getElementById('trans_' + id)
-        if (textElement) {
-            textElement.innerText = textElement.innerText + text
+        if (textElement !== null) {
+            // textElement.innerText = textElement.innerText + text
+            textElement.innerText = text
+
         } else {
+            console.log(textElement)
             const message = document.getElementById('mess_' + id)
             let translatedText = document.createElement('span')
             translatedText.id = 'trans_' + id

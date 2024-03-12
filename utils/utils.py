@@ -97,14 +97,32 @@ def prepare_translated_data(
 ) -> list[dict[str, str]]:
     room: Room = get_room_by_id(room_id=room_id, rooms=rooms)
     message: Message = room.get_message(message_id=message_id)
-
-    if message.original_text == text:
+    text = text.lower()
+    text = text.strip()
+    if message:
+        if message.original_text == text:
+            return []
+        elif not text.replace(message.original_text, ''):
+            return []
+        # text = ' '.join(text.split()[-4::])
+        text = text.replace(message.original_text.strip(), '')
+    if not text.strip():
         return []
+    print('---')
+    if message:
+        print('Orig Message:', message.original_text)
+    print('To translate:', text)
+    # if not message:
+    #     message: Message = Message(sender=sender, original_text='', message_id=message_id)
+    #     room.add_message(message)
+    #     first_message = True
+    # message.original_text += ' ' + text.strip()
+    # return []
 
     first_message: bool = False
 
     if not message:
-        message: Message = Message(sender=sender, original_text=text, message_id=message_id)
+        message: Message = Message(sender=sender, original_text='', message_id=message_id)
         room.add_message(message)
         first_message = True
 
@@ -133,48 +151,9 @@ def prepare_translated_data(
     for thread in threads:
         thread.join()
 
+    message.original_text += ' ' + text.strip()
+
     return results
-    # if data['status'] == 'succeeded':
-    #     results: list[dict[str, str | Participant]] = []
-    #     threads = []
-    #     for receiver in receivers_languages.keys():
-    #         if receiver.language != sender.language:
-    #             thread = threading.Thread(
-    #                 target=Translator.translate,
-    #                 args=(
-    #                     data['status'],
-    #                     data['text'],
-    #                     receiver,
-    #                     sender,
-    #                     context,
-    #                     message_id,
-    #                     receivers_languages[receiver]['gtts'],
-    #                     results
-    #                 )
-    #             )
-    #             threads.append(thread)
-    #             thread.start()
-    #     for thread in threads:
-    #         thread.join()
-    #
-    #     for result in results:
-    #         if result['status'] == 'success':
-    #             print(result)
-    #         socketio.emit('new_message', result['data'], to=result['receiver'].user_id)
-    #         receiver = result['receiver']
-    #         result['name'] = sender.username
-    #         result['gtts_language'] = receivers_languages[receiver]['gtts']
-    #         del result['receiver']
-    #         print(result)
-    #         translation_results[receiver.user_id] = result
-    #         message = Message(sender=sender,
-    #                           receiver=receiver,
-    #                           original_text=result['original_text'],
-    #                           time_gap=time_gap,
-    #                           message_id=message_id)
-    #         message.add_translation(language=receiver.language, text=result['translated_text'])
-    #         room.add_message(message)
-    # return translation_results
 
 
 def time_log(text: str, time_checkpoint: float, spaces: int = 35):

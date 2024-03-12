@@ -41,8 +41,6 @@ class Translator:
         language_from = sender.language
         language_to = receiver.language
 
-        text = text.replace(prev_orig, '')
-
         messages: list[BaseMessage] = cls.__make_messages(
             language_from=language_from,
             language_to=language_to,
@@ -57,6 +55,9 @@ class Translator:
             sender=sender,
             receiver=receiver
         )
+        print('Prev Trans:', prev_trans)
+
+        data['text'] = f'{prev_trans if prev_trans else ""}{data['text']}'
 
         results.append(
             {
@@ -77,6 +78,9 @@ class Translator:
     ) -> dict[str, str | bool]:
 
         response: str = cls.OpenChat(messages).content
+        print('*' * 99)
+        print('RAW:', response)
+        print('*' * 99)
         response = response[response.find('Translation') + 13::]
         response = response.strip()
 
@@ -84,11 +88,11 @@ class Translator:
             if sign in response:
                 response = response[:response.find(sign):]
 
-        for sign in ['"', "'", '.']:
+        for sign in ['"', "'", '.', '*']:
             response = response.replace(sign, '')
 
-        response = response.strip()
-
+        response = response.strip() + ' '
+        print('Translated:', response)
         data: dict[str, str | bool] = {
             "text": response,
             "type": "part",

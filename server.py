@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import Any
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from flask_socketio import SocketIO, emit, join_room, leave_room
@@ -8,7 +9,7 @@ from uuid import uuid4
 # Next two lines are for the issue: https://github.com/miguelgrinberg/python-engineio/issues/142
 from engineio.payload import Payload
 Payload.max_decode_packets = 200
-
+i = 0
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "thisismys3cr3tk3y"
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
@@ -148,26 +149,47 @@ def get_languages():
 
 @socketio.on("new_recording")
 def new_recording(data):
+
+    handle_message_part(data=data)
     message_type = data['type']
-    if (len(data['speech'].split()) - 1) % STEP == 0 or message_type == 'end':
-        if message_type != 'end':
-            data['speech'] = ' '.join(data['speech'].split()[:-1:])
-        async_new_recording(data=data)
-    else:
-        handle_message_part(data=data)
+
+    if data['speech']:
+        if (len(data['speech'].split()) - 1) % STEP == 0 or message_type == 'end':
+
+            if message_type != 'end':
+                data['speech'] = ' '.join(data['speech'].split()[:-1:])
+
+            room: Room = get_room_by_id(room_id=data['room_id'], rooms=rooms)
+            room.add_to_queue(message_id=data['id'], task=async_new_recording, data=data)
+
+            if room.get_queue_size(message_id=data['id']) == 1:
+                t_data = room.get_from_queue(message_id=data['id'])
+
+                if not t_data:
+                    return
+
+                task, data = t_data
+                task(data)
+
+    # else:
 
 
 def async_new_recording(data) -> None:
-    user_id = request.sid
-    room_id = data['room_id']
-    speech = data['speech']
     message_id = data['id']
+    room_id = data['room_id']
+    user_id = request.sid
+    speech = data['speech']
+
+
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
+
     if not sender or not receivers:
         return
+
     receivers_languages: dict[Participant, dict[str, str]] = {}
     get_participants_languages(receivers=receivers, receivers_languages=receivers_languages)
+
     results = prepare_translated_data(
         text=speech,
         sender=sender,
@@ -176,14 +198,24 @@ def async_new_recording(data) -> None:
         rooms=rooms,
         message_id=message_id
     )
+
     room: Room = get_room_by_id(room_id=room_id, rooms=rooms)
     message: Message = room.get_message(message_id=message_id)
+
     for result in results:
-        print(result)
+        # pprint(result)
+        # print('-' * 99)
         result['data']['id'] = message.id
         socketio.emit('new_message', result['data'], to=result['receiver'].user_id)
-        message.original_text = result['original_text']
         message.add_translation(language=result['receiver'].language, text=result['translated_text'])
+
+    t_data = room.get_from_queue(message_id=message_id)
+
+    if not t_data:
+        return
+
+    task, data = t_data
+    task(data)
 
 
 @app.route('/get_chat_history', methods=['GET'])

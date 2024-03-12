@@ -1,3 +1,7 @@
+import queue
+from typing import Callable
+
+
 class Participant:
     def __init__(self, username: str, user_id: str, language: str):
         self.username: str = username
@@ -40,6 +44,7 @@ class Room:
         self.messages: list[Message] = []
         self.__participants_count: int = 0
         self.languages: dict[str, list[Participant]] = dict()
+        self.messages_queue: dict[str, queue.Queue] = {}
 
     def add_participant(self, participant: Participant):
         if self.max_participants <= self.__participants_count:
@@ -74,3 +79,16 @@ class Room:
 
     def __str__(self):
         return f'Room <id: {self.room_id}, name: {self.name}, participants: {self.participants}, languages: {self.languages}>'
+
+    def add_to_queue(self, message_id: str, task: Callable, data: dict):
+        if not self.messages_queue.get(message_id):
+            self.messages_queue[message_id] = queue.Queue()
+        self.messages_queue[message_id].put((task, data))
+
+    def get_from_queue(self, message_id: str) -> tuple[Callable, dict] | None:
+        if self.messages_queue[message_id].qsize():
+            return self.messages_queue[message_id].get()
+        return None
+
+    def get_queue_size(self, message_id: str):
+        return self.messages_queue[message_id].qsize()
