@@ -96,7 +96,6 @@ class Translator:
 
         response = response.strip() + ' '
         print('Translated:', response)
-        print('*' * 99)
         tts_lang = get_language(receiver.language, 'gtts')
 
         data: dict[str, str | bool] = {
