@@ -14,6 +14,9 @@ recognition.interimResults = true;
 recognition.continuous = true;
 let newMessage = true
 let lastMessageID
+let audio
+let speaking = false
+
 let getLanguageCode = () => {
     fetch(`/get_language_code/${myID}/${myRoomID}`)
     .then( response => response.json() )
@@ -21,8 +24,40 @@ let getLanguageCode = () => {
         recognition.lang = data.languageCode
     })
 }
+const options = {
+  method: 'POST',
+  headers: {
+    'xi-api-key': 'dbd1431ef2b26e449fe30308ddbd28bd',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    model_id: 'eleven_multilingual_v2',
+    text: ''
+  })
+};
 
+let playText = text => {
+    options.body = JSON.stringify({
+        model_id: 'eleven_multilingual_v2',
+        text: text
+    });
+    fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', options)
+        .then(response => response.blob())
+        .then(blob => {
+            audio = new Audio(URL.createObjectURL(blob));
+            audio.addEventListener('ended', () => {
+                console.log(ttsQueue.size())
+                if (ttsQueue.size()) {
+                    playText(ttsQueue.front())
+                }
+                ttsQueue.dequeue()
+            })
+            audio.play().then().catch(err => console.log(err))
+        })
+        .catch(err => console.error(err));
+}
 
+// playText('bibib')
 let handleNewMessage = (local, original_text, name, id) => {
     addMessage(local, name, original_text, id)
 }
@@ -110,35 +145,56 @@ recognition.onend = () =>  {
     }
 }
 
+let playAudio = audioBytes => {
+    speaking = true
+    const blob = new Blob([audioBytes], )
+    const audioURL = URL.createObjectURL(blob);
+    const audio = new Audio(audioURL);
+    audio.addEventListener('ended', () => {
+        speaking = false
+        console.log(ttsQueue.size())
+        if (ttsQueue.size()) {
+            playAudio(ttsQueue.front())
+        }
+        ttsQueue.dequeue()
+    })
+    audio.play();
+}
 
 socket.on('new_message', (data) => {
     // console.log(data)
     if (!data.original){
-        msg.text = data.text
-        msg.lang = data.tts_language
-        if ('speechSynthesis' in window) {
-            if (window.speechSynthesis.speaking) {
-                const element = document.getElementById('vid_' + data.sender)
-                shadows.enqueue(element)
-                // const sentences = data.text.split(".");
-                // sentences.forEach(function(sentence) {
-                ttsQueue.enqueue(
-                {
-
-                    text: data.text,
-                    lang: data.tts_language
-                    }
-                )
-                // })
-
-            } else {
-                console.log(msg)
-                window.speechSynthesis.speak(msg);
-            }
-
+        const audioBytes = data.audio
+        if (speaking) {
+            ttsQueue.enqueue(audioBytes)
         } else {
-            console.log('Web Speech API does not support in this browser.');
+            playAudio(audioBytes)
         }
+        // msg.text = data.text
+        // msg.lang = data.tts_language
+        // if ('speechSynthesis' in window) {
+        //     if (window.speechSynthesis.speaking) {
+        //         const element = document.getElementById('vid_' + data.sender)
+        //         shadows.enqueue(element)
+        //         // const sentences = data.text.split(".");
+        //         // sentences.forEach(function(sentence) {
+        //         ttsQueue.enqueue(
+        //         {
+        //
+        //             text: data.text,
+        //             lang: data.tts_language
+        //             }
+        //         )
+        //         // })
+        //
+        //     } else {
+        //         console.log(msg)
+        //         window.speechSynthesis.speak(msg);
+        //     }
+        //
+        // } else {
+        //     console.log('Web Speech API does not support in this browser.');
+        // }
     }
     appendMessage(data.id, data.text, data.original, data.type, data.name)
 })

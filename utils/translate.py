@@ -1,6 +1,6 @@
 import os
 import queue
-
+import requests
 from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage, HumanMessage
 from models.models import Participant
@@ -8,14 +8,16 @@ from langchain_community.chat_models import ChatLiteLLM
 from langchain_core.messages.base import BaseMessage
 from languages.get_languages import get_language
 
+
 def load_env() -> None:
     dotenv_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'config.env')
     load_dotenv(dotenv_path)
 
 
 load_env()
-
+ELEVEN_API_TOKEN = os.getenv('ELEVEN_TOKEN')
 os.environ["TOGETHERAI_API_KEY"] = os.getenv('TOGETHER_TOKEN')
+
 
 
 class Translator:
@@ -26,6 +28,12 @@ class Translator:
 
     OpenChat.model_kwargs = {
         "max_tokens": 1024
+    }
+    url = "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM"
+    ELEVEN_MODEL_ID = "eleven_multilingual_v2"
+    headers = {
+        "xi-api-key": ELEVEN_API_TOKEN,
+        "Content-Type": "application/json"
     }
 
     @classmethod
@@ -98,6 +106,8 @@ class Translator:
         print('Translated:', response)
         tts_lang = get_language(receiver.language, 'gtts')
 
+        audio: bytes = cls.get_audio(response)
+
         data: dict[str, str | bool] = {
             "text": response,
             "type": "part",
@@ -106,6 +116,7 @@ class Translator:
             "original": False,
             "receiver": receiver.user_id,
             "tts_language": tts_lang,
+            "audio": audio
         }
         return data
 
@@ -147,3 +158,17 @@ class Translator:
         ]
 
         return messages
+
+    @classmethod
+    def get_audio(cls, text: str) -> bytes:
+        payload = {
+            "model_id": cls.ELEVEN_MODEL_ID,
+            "text": text
+        }
+
+        response = requests.request("POST", cls.url, json=payload, headers=cls.headers)
+
+        return response.content
+
+
+Translator.get_audio('asd')
