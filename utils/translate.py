@@ -80,9 +80,9 @@ class Translator:
     ) -> dict[str, str | bool]:
 
         response: str = cls.OpenChat(messages).content
-        # print('*' * 99)
-        # print('RAW:', response)
-        # print('*' * 99)
+        print('*' * 99)
+        print('RAW:', response)
+        print('*' * 99)
         response = response[response.find('Translation') + 13::]
         response = response.strip()
 
@@ -94,7 +94,7 @@ class Translator:
             response = response.replace(sign, '')
 
         response = response.strip() + ' '
-        # print('Translated:', response)
+        print('Translated:', response)
 
         tts_lang = get_language(receiver.language, 'gtts')
 
