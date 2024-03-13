@@ -39,6 +39,7 @@ class Translator:
             prev_trans: str,
             prev_orig: str
     ) -> None:
+        print('*' * 99)
 
         language_from = sender.language
         language_to = receiver.language
@@ -57,8 +58,9 @@ class Translator:
             sender=sender,
             receiver=receiver
         )
-        # print('Prev Trans:', prev_trans)
-
+        print('Prev Trans:', prev_trans)
+        print('Prev Orig:', prev_orig)
+        print('Text:', text)
         translated_text = f'{prev_trans if prev_trans else ""}{data['text']}'
 
         results.append(
@@ -80,9 +82,8 @@ class Translator:
     ) -> dict[str, str | bool]:
 
         response: str = cls.OpenChat(messages).content
-        print('*' * 99)
         print('RAW:', response)
-        print('*' * 99)
+
         response = response[response.find('Translation') + 13::]
         response = response.strip()
 
@@ -95,7 +96,7 @@ class Translator:
 
         response = response.strip() + ' '
         print('Translated:', response)
-
+        print('*' * 99)
         tts_lang = get_language(receiver.language, 'gtts')
 
         data: dict[str, str | bool] = {
