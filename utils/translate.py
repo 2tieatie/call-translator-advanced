@@ -29,7 +29,7 @@ class Translator:
     OpenChat.model_kwargs = {
         "max_tokens": 1024
     }
-    url = "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM"
+    url = "https://api.elevenlabs.io/v1/text-to-speech/IKne3meq5aSn9XLyUdCD"
     ELEVEN_MODEL_ID = "eleven_multilingual_v2"
     headers = {
         "xi-api-key": ELEVEN_API_TOKEN,

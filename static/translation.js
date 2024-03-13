@@ -167,7 +167,8 @@ socket.on('new_message', (data) => {
         const audioBytes = data.audio
         if (speaking) {
             ttsQueue.enqueue(audioBytes)
-        } else {
+        }
+        else {
             playAudio(audioBytes)
         }
         // msg.text = data.text
