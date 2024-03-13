@@ -168,8 +168,8 @@ def new_recording(data):
                 return
 
             room.add_to_queue(message_id=data['id'], task=async_new_recording, data=data)
-            # print('Received:', data)
-            if room.get_queue_size(message_id=data['id']) == 1:
+
+            if room.is_free(data['id']):
                 t_data = room.get_from_queue(message_id=data['id'])
 
                 if not t_data:
@@ -182,8 +182,16 @@ def new_recording(data):
 
 
 def async_new_recording(data) -> None:
-    message_id = data['id']
     room_id = data['room_id']
+    message_id = data['id']
+    room: Room = get_room_by_id(room_id=room_id, rooms=rooms)
+    cont = room.is_free(message_id=message_id)
+
+    while not cont:
+        cont = room.is_free(message_id=message_id)
+
+    room.set_state_not_free(message_id=message_id)
+
     user_id = request.sid
     speech = data['speech']
 
@@ -205,16 +213,14 @@ def async_new_recording(data) -> None:
         message_id=message_id
     )
 
-    room: Room = get_room_by_id(room_id=room_id, rooms=rooms)
     message: Message = room.get_message(message_id=message_id)
 
     for result in results:
-        # pprint(result)
-        # print('-' * 99)
         result['data']['id'] = message.id
-        # print('Sent:', result['data'])
         socketio.emit('new_message', result['data'], to=result['receiver'].user_id)
         message.add_translation(language=result['receiver'].language, text=result['translated_text'])
+
+    room.set_state_free(message_id=message_id)
 
     t_data = room.get_from_queue(message_id=message_id)
 

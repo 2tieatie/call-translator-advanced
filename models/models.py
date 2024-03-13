@@ -44,7 +44,7 @@ class Room:
         self.messages: list[Message] = []
         self.__participants_count: int = 0
         self.languages: dict[str, list[Participant]] = dict()
-        self.messages_queue: dict[str, tuple[queue.Queue, list[str]]] = {}
+        self.messages_queue: dict[str, list[queue.Queue, list[str], bool]] = {}
 
     def add_participant(self, participant: Participant):
         if self.max_participants <= self.__participants_count:
@@ -83,7 +83,7 @@ class Room:
     def add_to_queue(self, message_id: str, task: Callable, data: dict, keyword: str = 'speech'):
 
         if not self.messages_queue.get(message_id):
-            self.messages_queue[message_id] = (queue.Queue(), list())
+            self.messages_queue[message_id] = [queue.Queue(), list(), True]
 
         self.messages_queue[message_id][0].put((task, data))
         self.messages_queue[message_id][1].append(data[keyword])
@@ -102,3 +102,15 @@ class Room:
             return True
         return False
 
+    def is_free(self, message_id: str):
+        if self.messages_queue.get(message_id) and self.messages_queue[message_id][2]:
+            return True
+        return False
+
+    def set_state_not_free(self, message_id: str):
+        if self.messages_queue.get(message_id) and self.messages_queue[message_id][2]:
+            self.messages_queue[message_id][2] = False
+
+    def set_state_free(self, message_id: str):
+        if self.messages_queue.get(message_id) and not self.messages_queue[message_id][2]:
+            self.messages_queue[message_id][2] = True
