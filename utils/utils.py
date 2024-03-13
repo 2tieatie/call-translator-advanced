@@ -1,11 +1,6 @@
 import asyncio
 import threading
 import time
-from pprint import pprint
-from typing import Any, List, Dict
-
-from flask_socketio import SocketIO
-
 from models.models import Room, Participant, Message
 import os
 from languages.get_languages import get_language
@@ -108,16 +103,6 @@ def prepare_translated_data(
         text = text.replace(message.original_text.strip(), '')
     if not text.strip():
         return []
-    print('---')
-    if message:
-        print('Orig Message:', message.original_text)
-    print('To translate:', text)
-    # if not message:
-    #     message: Message = Message(sender=sender, original_text='', message_id=message_id)
-    #     room.add_message(message)
-    #     first_message = True
-    # message.original_text += ' ' + text.strip()
-    # return []
 
     first_message: bool = False
 

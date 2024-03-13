@@ -1,4 +1,6 @@
 import os
+import queue
+
 from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage, HumanMessage
 from models.models import Participant
@@ -55,7 +57,7 @@ class Translator:
             sender=sender,
             receiver=receiver
         )
-        print('Prev Trans:', prev_trans)
+        # print('Prev Trans:', prev_trans)
 
         translated_text = f'{prev_trans if prev_trans else ""}{data['text']}'
 
@@ -78,9 +80,9 @@ class Translator:
     ) -> dict[str, str | bool]:
 
         response: str = cls.OpenChat(messages).content
-        print('*' * 99)
-        print('RAW:', response)
-        print('*' * 99)
+        # print('*' * 99)
+        # print('RAW:', response)
+        # print('*' * 99)
         response = response[response.find('Translation') + 13::]
         response = response.strip()
 
@@ -92,7 +94,7 @@ class Translator:
             response = response.replace(sign, '')
 
         response = response.strip() + ' '
-        print('Translated:', response)
+        # print('Translated:', response)
 
         tts_lang = get_language(receiver.language, 'gtts')
 
@@ -105,7 +107,6 @@ class Translator:
             "receiver": receiver.user_id,
             "tts_language": tts_lang,
         }
-
         return data
 
     @staticmethod

@@ -44,7 +44,7 @@ class Room:
         self.messages: list[Message] = []
         self.__participants_count: int = 0
         self.languages: dict[str, list[Participant]] = dict()
-        self.messages_queue: dict[str, queue.Queue] = {}
+        self.messages_queue: dict[str, tuple[queue.Queue, list[str]]] = {}
 
     def add_participant(self, participant: Participant):
         if self.max_participants <= self.__participants_count:
@@ -80,15 +80,25 @@ class Room:
     def __str__(self):
         return f'Room <id: {self.room_id}, name: {self.name}, participants: {self.participants}, languages: {self.languages}>'
 
-    def add_to_queue(self, message_id: str, task: Callable, data: dict):
+    def add_to_queue(self, message_id: str, task: Callable, data: dict, keyword: str = 'speech'):
+
         if not self.messages_queue.get(message_id):
-            self.messages_queue[message_id] = queue.Queue()
-        self.messages_queue[message_id].put((task, data))
+            self.messages_queue[message_id] = (queue.Queue(), list())
+
+        self.messages_queue[message_id][0].put((task, data))
+        self.messages_queue[message_id][1].append(data[keyword])
 
     def get_from_queue(self, message_id: str) -> tuple[Callable, dict] | None:
-        if self.messages_queue[message_id].qsize():
-            return self.messages_queue[message_id].get()
+        if self.messages_queue[message_id][0].qsize():
+            return self.messages_queue[message_id][0].get()
+
         return None
 
     def get_queue_size(self, message_id: str):
-        return self.messages_queue[message_id].qsize()
+        return self.messages_queue[message_id][0].qsize()
+
+    def in_queue(self, data: str, message_id: str):
+        if self.messages_queue.get(message_id) and data in self.messages_queue[message_id][1]:
+            return True
+        return False
+

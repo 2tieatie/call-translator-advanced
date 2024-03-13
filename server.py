@@ -159,9 +159,16 @@ def new_recording(data):
             if message_type != 'end':
                 data['speech'] = ' '.join(data['speech'].split()[:-1:])
 
-            room: Room = get_room_by_id(room_id=data['room_id'], rooms=rooms)
-            room.add_to_queue(message_id=data['id'], task=async_new_recording, data=data)
+            if not data['speech']:
+                return
 
+            room: Room = get_room_by_id(room_id=data['room_id'], rooms=rooms)
+
+            if room.in_queue(data=data['speech'], message_id=data['id']):
+                return
+
+            room.add_to_queue(message_id=data['id'], task=async_new_recording, data=data)
+            print('Received:', data)
             if room.get_queue_size(message_id=data['id']) == 1:
                 t_data = room.get_from_queue(message_id=data['id'])
 
@@ -205,7 +212,7 @@ def async_new_recording(data) -> None:
         # pprint(result)
         # print('-' * 99)
         result['data']['id'] = message.id
-        pprint(result['data'])
+        print('Sent:', result['data'])
         socketio.emit('new_message', result['data'], to=result['receiver'].user_id)
         message.add_translation(language=result['receiver'].language, text=result['translated_text'])
 
