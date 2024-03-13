@@ -124,6 +124,7 @@ socket.on('new_message', (data) => {
                 // sentences.forEach(function(sentence) {
                 ttsQueue.enqueue(
                 {
+
                     text: data.text,
                     lang: data.tts_language
                     }
