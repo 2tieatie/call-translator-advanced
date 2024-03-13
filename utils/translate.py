@@ -132,7 +132,7 @@ class Translator:
 
         messages = [
             SystemMessage(f'''
-            Follow every task which user gives you STRICTLY. Only high quality Translations
+            Follow every task which user gives you STRICTLY. Only high quality Translations. SEND ONLY TRANSLATED PART!
             '''),
             HumanMessage(f'''
             Your task is to translate a small part of a Speech Transcription from {language_from} to {language_to}. 
