@@ -154,10 +154,10 @@ def new_recording(data):
     message_type = data['type']
 
     if data['speech']:
-        if (len(data['speech'].split()) - 2) % STEP == 0 or message_type == 'end':
+        if (len(data['speech'].split()) - 4) % STEP == 0 or message_type == 'end':
 
             if message_type != 'end':
-                data['speech'] = ' '.join(data['speech'].split()[:-2:])
+                data['speech'] = ' '.join(data['speech'].split()[:-4:])
 
             if not data['speech']:
                 return
