@@ -18,11 +18,8 @@ let mediaRecorderTimeSlice = 100
 
 let changeStateMR = () => {
     if (mediaRecorder.state !== 'recording') {
-        // console.log('Started recorder')
         mediaRecorder.start(100)
-        // console.log(mediaRecorder)
     } else {
-        // console.log('Ended recorder')
         mediaRecorder.stop()
     }
 }
