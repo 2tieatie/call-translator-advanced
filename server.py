@@ -1,6 +1,10 @@
 import asyncio
+import os
 import time
-from typing import Any
+import uuid
+from typing import Any, Callable
+
+from deepgram import LiveOptions, DeepgramClient, LiveTranscriptionEvents
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from languages.get_languages import names
@@ -9,18 +13,23 @@ from uuid import uuid4
 # Next two lines are for the issue: https://github.com/miguelgrinberg/python-engineio/issues/142
 from engineio.payload import Payload
 Payload.max_decode_packets = 200
-i = 0
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "thisismys3cr3tk3y"
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 socketio = SocketIO(app, async_mode='eventlet', max_http_buffer_size=500 * 1024 * 1024)
 STEP = int(os.getenv('STEP'))
-
+DEEPGRAM_TOKEN = os.getenv('DEEPGRAM_TOKEN')
 _users_in_room = {}
 _room_of_sid = {}
 _name_of_sid = {}
-
+dg_connections = {}
 rooms = []
+
+
+def deepgram_conn(handler: Callable):
+    dg_socket = DeepgramClient(api_key=DEEPGRAM_TOKEN).listen.live.v("1")
+    dg_socket.on(LiveTranscriptionEvents.Transcript, handler)
+    return dg_socket
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -80,7 +89,6 @@ def on_join_room(data):
 
     print("[{}] New member joined: {}<{}>".format(room_id, display_name, sid))
     emit("user-connect", {"sid": sid, "name": display_name}, broadcast=True, include_self=False, room=room_id)
-    
 
     if room_id not in _users_in_room:
         _users_in_room[room_id] = [sid]
@@ -147,38 +155,67 @@ def get_languages():
     return jsonify({'names': names})
 
 
+@socketio.on("connect_recognizer")
+def new_recording(data):
+
+    data_arg = data
+    room_id = data['room_id']
+    sid = request.sid
+
+    user = get_participant_by_id(room_id=room_id, user_id=sid, rooms=rooms)
+    language_code = get_language(user.language, 'deepgram')
+
+    options = LiveOptions(model="nova-2", language=language_code)
+
+    def on_message(self, result, **kwargs):
+        data_arg['speech'] = result.channel.alternatives[0].transcript
+
+        if len(data_arg['speech']) == 0:
+            return
+
+        data['id'] = str(uuid.uuid4())
+        data['user_id'] = sid
+
+        print(data['speech'])
+
+        handle_message_part(data=data)
+
+        room: Room = get_room_by_id(room_id=data_arg['room_id'], rooms=rooms)
+
+        if room.in_queue(data=data_arg['speech'], message_id=data_arg['id']):
+            return
+
+        room.add_to_queue(message_id=data_arg['id'], task=async_new_recording, data=data_arg)
+
+        if room.is_free(data_arg['id']):
+            t_data = room.get_from_queue(message_id=data_arg['id'])
+
+            if not t_data:
+                return
+
+            task, task_data = t_data
+            task(task_data)
+
+    dg_connections[sid] = deepgram_conn(handler=on_message)
+    dg_connections[sid].start(options)
+
+
 @socketio.on("new_recording")
 def new_recording(data):
 
-    handle_message_part(data=data)
-    message_type = data['type']
+    sid = request.sid
 
-    if data['speech']:
-        if (len(data['speech'].split()) - 4) % STEP == 0 or message_type == 'end':
+    if dg_connections.get(sid):
+        dg_connections[sid].send(data['audio'])
 
-            if message_type != 'end':
-                data['speech'] = ' '.join(data['speech'].split()[:-4:])
 
-            if not data['speech']:
-                return
+@socketio.on("disconnect_recognizer")
+def disconnect_recognizer():
+    sid = request.sid
 
-            room: Room = get_room_by_id(room_id=data['room_id'], rooms=rooms)
-
-            if room.in_queue(data=data['speech'], message_id=data['id']):
-                return
-
-            room.add_to_queue(message_id=data['id'], task=async_new_recording, data=data)
-
-            if room.is_free(data['id']):
-                t_data = room.get_from_queue(message_id=data['id'])
-
-                if not t_data:
-                    return
-
-                task, data = t_data
-                task(data)
-
-    # else:
+    if dg_connections.get(sid):
+        dg_connections[sid].finish()
+        del dg_connections[sid]
 
 
 def async_new_recording(data) -> None:
@@ -192,7 +229,7 @@ def async_new_recording(data) -> None:
 
     room.set_state_not_free(message_id=message_id)
 
-    user_id = request.sid
+    user_id = data['user_id']
     speech = data['speech']
 
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
@@ -255,7 +292,7 @@ def handle_message_part(data: dict[str, str]):
     message_id = data['id']
     room_id = data['room_id']
     speech = data['speech']
-    user_id = request.sid
+    user_id = data['user_id']
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
     sender = get_participant_by_id(room_id=room_id, rooms=rooms, user_id=user_id)
     for receiver in receivers:

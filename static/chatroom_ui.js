@@ -1,7 +1,8 @@
 let myVideo;
-const recognition = new webkitSpeechRecognition() || new SpeechRecognition();
+// const recognition = new webkitSpeechRecognition() || new SpeechRecognition();
 let audioM = true
 let f_time = true
+let mediaRecorder
 document.addEventListener("DOMContentLoaded", (event)=>{
     myVideo = document.getElementById("local_vid");
     myVideo.onloadeddata = ()=>{console.log("W,H: ", myVideo.videoWidth, ", ", myVideo.videoHeight);};
@@ -12,12 +13,8 @@ document.addEventListener("DOMContentLoaded", (event)=>{
     muteBtn.addEventListener("click", (event)=>{
         audioMuted = !audioMuted;
         setAudioMuteState(audioMuted);
-        if (!audioMuted) {
-            recognition.start()
-        } else {
-            recognition.stop()
-        }
-    });    
+        changeStateMR()
+    })
     muteVidBtn.addEventListener("click", (event)=>{
         videoMuted = !videoMuted;
         setVideoMuteState(videoMuted);        
@@ -86,7 +83,16 @@ function setAudioMuteState(flag)
     audioM = flag
     document.getElementById("mute_icon").innerText = (flag)? "mic_off": "mic";
     if (!flag) {
-        recognition.start()
+        // socket.emit('connect_recognizer', {
+        //     room_id: myRoomID,
+        //     firstCheckpoint: 1,
+        //     last_recording: lastRecordingTimeDelta,
+        //     type: 'end'
+        // })
+        // mediaRecorder.start(mediaRecorderTimeSlice)
+    } else {
+        // socket.emit('disconnect_recognizer')
+        // mediaRecorder.stop()
     }
 }
 function stopVideoOnly(stream) {
@@ -118,4 +124,92 @@ function setVideoMuteState(flag)
     //     }
     // }
     // f_time = false
+}
+
+let createLocalMessage = (text) => {
+    lastMessageID = uuidv4()
+    let messageDiv = document.createElement('div');
+    messageDiv.classList.add('localMessageBox')
+
+    let senderDiv = document.createElement('div');
+    senderDiv.classList.add('localMessageSender');
+    senderDiv.innerText = myName;
+
+    let textDiv = document.createElement('div');
+    textDiv.classList.add('localMessage');
+
+    let originalLabel = document.createElement('strong');
+    originalLabel.innerText = 'Original: ';
+    const originalText = document.createElement('span')
+    originalText.innerText = text
+    originalText.id = lastMessageID
+    textDiv.appendChild(originalLabel);
+    textDiv.appendChild(document.createElement('br'));
+    textDiv.appendChild(originalText);
+    messageDiv.appendChild(senderDiv);
+    messageDiv.appendChild(textDiv);
+
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight
+}
+
+
+let addMessage = (local, username, original_text, id) => {
+    let messageDiv = document.createElement('div');
+    messageDiv.classList.add(local ? 'localMessageBox' : 'remoteMessageBox');
+    let senderDiv = document.createElement('div');
+    senderDiv.classList.add(local ? 'localMessageSender' : 'remoteMessageSender');
+    senderDiv.innerText = username;
+
+    let textDiv = document.createElement('div');
+    textDiv.classList.add(local ? 'localMessage' : 'remoteMessage');
+    textDiv.id = 'mess_' + id
+    let originalLabel = document.createElement('strong');
+    originalLabel.innerText = 'Original: ';
+    let originalText = document.createElement('span')
+    originalText.id = 'orig_' + id
+    originalText.innerText = original_text
+    let translatedLabel = document.createElement('strong');
+    translatedLabel.innerText = 'Translated: ';
+    textDiv.appendChild(originalLabel);
+    textDiv.appendChild(document.createElement('br'));
+    textDiv.appendChild(originalText);
+    textDiv.appendChild(document.createElement('br'));
+    textDiv.appendChild(translatedLabel);
+    textDiv.appendChild(document.createElement('br'));
+    messageDiv.appendChild(senderDiv);
+    messageDiv.appendChild(textDiv);
+
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+let appendMessage = (id, text, original, type, username) => {
+    // console.log(id)
+    if (original) {
+        const textElement = document.getElementById('orig_' + id)
+        if (textElement) {
+            textElement.innerText = text
+        } else {
+            addMessage(false, username, text, id)
+        }
+    } else {
+        let textElement = document.getElementById('trans_' + id)
+        if (textElement !== null) {
+            // textElement.innerText = textElement.innerText + text
+            textElement.innerText += ' ' + text
+
+        } else {
+            console.log(textElement)
+            const message = document.getElementById('mess_' + id)
+            let translatedText = document.createElement('span')
+            translatedText.id = 'trans_' + id
+            translatedText.innerText = text
+            message.appendChild(translatedText)
+        }
+    }
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
