@@ -232,7 +232,7 @@ def async_new_recording(data) -> None:
     message_id = data['id']
     room: Room = get_room_by_id(room_id=room_id, rooms=rooms)
     cont = room.is_free(message_id=message_id)
-    handle_message_part(data=data)
+    # handle_message_part(data=data)
     while not cont:
         cont = room.is_free(message_id=message_id)
 
@@ -243,6 +243,25 @@ def async_new_recording(data) -> None:
 
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
+
+    for receiver in receivers:
+        h.call(data={
+            "id": message_id,
+            "text": speech,
+            "type": "part",
+            "local": False,
+            "name": sender.username,
+            "original": True
+        }, to=receiver.user_id)
+        print(f'Sent to Receiver: {receiver.username}, {receiver.user_id}')
+    h.call(data={
+        "id": message_id,
+        "text": speech,
+        "type": "part",
+        "local": True,
+        "name": sender.username,
+        "original": True
+    }, to=user_id)
 
     if not sender or not receivers:
         return

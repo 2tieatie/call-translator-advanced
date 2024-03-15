@@ -205,12 +205,13 @@ let uuidv4 = () => {
   );
 }
 
-if (DEBUG_TEST_MESSAGES) {
-    socket.on('test', async (data) => {
-    console.log('TEST MESSAGE RECEIVED')
-    if (data.message) {
-        console.log('TEXT', data.message)
+
+socket.on('test', async (data) => {
+    if (DEBUG_TEST_MESSAGES) {
+        console.log('TEST MESSAGE RECEIVED')
+        if (data.message) {
+            console.log('TEXT', data.message)
+        }
     }
 })
-}
 
