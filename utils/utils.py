@@ -5,6 +5,30 @@ from models.models import Room, Participant, Message
 import os
 from languages.get_languages import get_language
 from utils.translate import Translator
+from functools import wraps
+
+
+class Handler:
+
+    def __init__(self):
+        self.handler = None
+
+    def handle(self):
+        def decorator(func):
+            @wraps(func)
+            def wrapper(data, to):
+                result = func(data, to)
+                return result
+
+            self.handler = wrapper
+            return wrapper
+
+        return decorator
+
+    def call(self, data, to):
+        if self.handler:
+            self.handler(data, to)
+
 
 __MAX_ROOMS = int(os.getenv('MAX_ROOMS'))
 __MAX_MESSAGES_GAP = int(os.getenv('MAX_MESSAGES_GAP'))

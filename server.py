@@ -1,5 +1,6 @@
 import asyncio
 import os
+import threading
 import time
 import uuid
 from typing import Any, Callable
@@ -10,6 +11,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from languages.get_languages import names
 from utils.utils import *
 from uuid import uuid4
+from utils.utils import Handler
 # Next two lines are for the issue: https://github.com/miguelgrinberg/python-engineio/issues/142
 from engineio.payload import Payload
 Payload.max_decode_packets = 200
@@ -24,6 +26,7 @@ _room_of_sid = {}
 _name_of_sid = {}
 dg_connections = {}
 rooms = []
+h = Handler()
 
 
 def deepgram_conn(handler: Callable):
@@ -64,13 +67,13 @@ def entry_checkpoint(room_id):
         session[room_id] = {"name": display_name, "mute_audio":mute_audio, "mute_video":mute_video, 'language': language}
         return redirect(url_for("enter_room", room_id=room_id))
     return render_template("chatroom_checkpoint.html", room_id=room_id, room_name=room.name)
-    
+
 
 @socketio.on("connect")
 def on_connect():
     sid = request.sid
     print("New socket connected ", sid)
-    
+
 
 @socketio.on("join-room")
 def on_join_room(data):
@@ -167,7 +170,7 @@ def new_recording(data):
 
     options = LiveOptions(model="nova-2", language=language_code)
 
-    def on_message(self, result, **kwargs):
+    def on_message(result):
         data_arg['speech'] = result.channel.alternatives[0].transcript
 
         if len(data_arg['speech']) == 0:
@@ -178,7 +181,7 @@ def new_recording(data):
 
         print(data['speech'])
 
-        handle_message_part(data=data)
+        # handle_message_part(data=data)
 
         room: Room = get_room_by_id(room_id=data_arg['room_id'], rooms=rooms)
 
@@ -196,7 +199,12 @@ def new_recording(data):
             task, task_data = t_data
             task(task_data)
 
-    dg_connections[sid] = deepgram_conn(handler=on_message)
+    def on_message_handler(self, result, **kwargs):
+        thread: threading.Thread = threading.Thread(target=on_message, args=(result, ))
+        thread.daemon = True
+        thread.start()
+
+    dg_connections[sid] = deepgram_conn(handler=on_message_handler)
     dg_connections[sid].start(options)
 
 
@@ -204,7 +212,7 @@ def new_recording(data):
 def new_recording(data):
 
     sid = request.sid
-
+    socketio.emit('test', {'message': 'test'}, to=sid)
     if dg_connections.get(sid):
         dg_connections[sid].send(data['audio'])
 
@@ -219,6 +227,7 @@ def disconnect_recognizer():
 
 
 def async_new_recording(data) -> None:
+    print('Entered Func')
     room_id = data['room_id']
     message_id = data['id']
     room: Room = get_room_by_id(room_id=room_id, rooms=rooms)
@@ -240,7 +249,7 @@ def async_new_recording(data) -> None:
 
     receivers_languages: dict[Participant, dict[str, str]] = {}
     get_participants_languages(receivers=receivers, receivers_languages=receivers_languages)
-
+    print('Received Participants Langs')
     results = prepare_translated_data(
         text=speech,
         sender=sender,
@@ -249,11 +258,13 @@ def async_new_recording(data) -> None:
         rooms=rooms,
         message_id=message_id
     )
+    print('Successfully Translated')
 
     message: Message = room.get_message(message_id=message_id)
 
     for result in results:
         result['data']['id'] = message.id
+        # h.call(data=result['data'], to=result['receiver'].user_id)
         socketio.emit('new_message', result['data'], to=result['receiver'].user_id)
         message.add_translation(language=result['receiver'].language, text=result['translated_text'])
 
@@ -289,6 +300,7 @@ def get_language_code(user_id: str, room_id: str):
 
 
 def handle_message_part(data: dict[str, str]):
+    print('Entered Handler')
     message_id = data['id']
     room_id = data['room_id']
     speech = data['speech']
@@ -296,7 +308,7 @@ def handle_message_part(data: dict[str, str]):
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
     sender = get_participant_by_id(room_id=room_id, rooms=rooms, user_id=user_id)
     for receiver in receivers:
-        socketio.emit('new_message', {
+        h.call(data={
             "id": message_id,
             "text": speech,
             "type": "part",
@@ -304,8 +316,16 @@ def handle_message_part(data: dict[str, str]):
             "name": sender.username,
             "original": True
         }, to=receiver.user_id)
-
-    socketio.emit('new_message', {
+        # socketio.emit('new_message', {
+        #     "id": message_id,
+        #     "text": speech,
+        #     "type": "part",
+        #     "local": False,
+        #     "name": sender.username,
+        #     "original": True
+        # }, to=receiver.user_id)
+        print(f'Sent to Receiver: {receiver.username}, {receiver.user_id}')
+    h.call(data={
         "id": message_id,
         "text": speech,
         "type": "part",
@@ -313,6 +333,22 @@ def handle_message_part(data: dict[str, str]):
         "name": sender.username,
         "original": True
     }, to=user_id)
+    # socketio.emit('new_message', {
+    #     "id": message_id,
+    #     "text": speech,
+    #     "type": "part",
+    #     "local": True,
+    #     "name": sender.username,
+    #     "original": True
+    # }, to=user_id)
+
+    print(f'Sent to Sender: {sender.username}, {sender.user_id}')
+
+
+@h.handle()
+def send_message(data, to):
+    socketio.emit('new_message', data, to=to)
+
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)

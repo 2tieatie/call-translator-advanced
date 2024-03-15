@@ -12,13 +12,13 @@ let newMessage = true
 let lastMessageID
 let audio
 let speaking = false
-
-let mediaRecorderTimeSlice = 100
+let DEBUG_TEST_MESSAGES = true
+let mediaRecorderTimeSlice = 250
 
 
 let changeStateMR = () => {
     if (mediaRecorder.state !== 'recording') {
-        mediaRecorder.start(100)
+        mediaRecorder.start(mediaRecorderTimeSlice)
     } else {
         mediaRecorder.stop()
     }
@@ -38,7 +38,7 @@ let initMediaRecorder = stream => {
         }
     }
 
-    mediaRecorder.onstart = () => {
+    mediaRecorder.onstart = async () => {
         console.log('Started recorder')
         socket.emit('connect_recognizer', {
             room_id: myRoomID,
@@ -48,7 +48,7 @@ let initMediaRecorder = stream => {
         })
     }
 
-    mediaRecorder.onstop = () => {
+    mediaRecorder.onstop = async () => {
         console.log('Ended recorder')
         socket.emit('disconnect_recognizer')
     }
@@ -56,7 +56,7 @@ let initMediaRecorder = stream => {
 
 
     try {
-        mediaRecorder.start(100)
+        mediaRecorder.start(mediaRecorderTimeSlice)
     } catch (e) {
         console.log(e)
     }
@@ -144,7 +144,8 @@ let playAudio = audioBytes => {
     audio.play();
 }
 
-socket.on('new_message', (data) => {
+socket.on('new_message', async (data) => {
+    console.log('NEW MESSAGE')
     console.log(data)
     if (!data.original){
         const audioBytes = data.audio
@@ -169,10 +170,15 @@ socket.on('users_with_other_languages', (data) => {
 })
 let muteOthers = (with_other_languages) => {
     console.log(with_other_languages)
-    with_other_languages.forEach((id) => {
+    try {
+        with_other_languages.forEach((id) => {
         const vid_element = document.getElementById(`vid_${id}`)
         vid_element.volume = 0.1
     })
+    } catch (e) {
+        console.log(e)
+    }
+
 }
 
 let unmuteAll = (with_other_languages) => {
@@ -197,5 +203,14 @@ let uuidv4 = () => {
   return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
     (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
   );
+}
+
+if (DEBUG_TEST_MESSAGES) {
+    socket.on('test', async (data) => {
+    console.log('TEST MESSAGE RECEIVED')
+    if (data.message) {
+        console.log('TEXT', data.message)
+    }
+})
 }
 
