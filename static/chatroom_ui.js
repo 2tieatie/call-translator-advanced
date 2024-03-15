@@ -186,14 +186,14 @@ let addMessage = (local, username, original_text, id) => {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-let appendMessage = (id, text, original, type, username) => {
+let appendMessage = (local, id, text, original, type, username) => {
     // console.log(id)
     if (original) {
         const textElement = document.getElementById('orig_' + id)
         if (textElement) {
             textElement.innerText = text
         } else {
-            addMessage(false, username, text, id)
+            addMessage(local, username, text, id)
         }
     } else {
         let textElement = document.getElementById('trans_' + id)

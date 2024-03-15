@@ -155,7 +155,7 @@ socket.on('new_message', (data) => {
             playAudio(audioBytes)
         }
     }
-    appendMessage(data.id, data.text, data.original, data.type, data.name)
+    appendMessage(data.local, data.id, data.text, data.original, data.type, data.name)
 })
 
 let getParticipantsWithOtherLanguages = () => {
