@@ -232,7 +232,7 @@ def async_new_recording(data) -> None:
     message_id = data['id']
     room: Room = get_room_by_id(room_id=room_id, rooms=rooms)
     cont = room.is_free(message_id=message_id)
-
+    handle_message_part(data=data)
     while not cont:
         cont = room.is_free(message_id=message_id)
 
@@ -249,7 +249,7 @@ def async_new_recording(data) -> None:
 
     receivers_languages: dict[Participant, dict[str, str]] = {}
     get_participants_languages(receivers=receivers, receivers_languages=receivers_languages)
-    print('Received Participants Langs')
+
     results = prepare_translated_data(
         text=speech,
         sender=sender,
@@ -258,7 +258,6 @@ def async_new_recording(data) -> None:
         rooms=rooms,
         message_id=message_id
     )
-    print('Successfully Translated')
 
     message: Message = room.get_message(message_id=message_id)
 
