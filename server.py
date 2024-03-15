@@ -305,6 +305,14 @@ def handle_message_part(data: dict[str, str]):
             "original": True
         }, to=receiver.user_id)
 
+    socketio.emit('new_message', {
+        "id": message_id,
+        "text": speech,
+        "type": "part",
+        "local": True,
+        "name": sender.username,
+        "original": True
+    }, to=user_id)
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
