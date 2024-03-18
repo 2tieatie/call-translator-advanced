@@ -14,7 +14,7 @@ let audio
 let speaking = false
 let DEBUG_TEST_MESSAGES = false
 let mediaRecorderTimeSlice = 250
-
+let firstOpen = true
 
 let changeStateMR = () => {
     if (mediaRecorder === undefined) {
@@ -43,6 +43,10 @@ let initMediaRecorder = stream => {
     }
 
     mediaRecorder.onstart = async () => {
+        if (firstOpen) {
+            firstOpen = false
+            return
+        }
         console.log('Started recorder')
         socket.emit('connect_recognizer', {
             room_id: myRoomID,
