@@ -197,8 +197,12 @@ def new_recording(data):
             task, task_data = t_data
             task(task_data)
 
+    def on_mes(result):
+        print('HANDLER', result.channel.alternatives[0].transcript)
+
     def on_message_handler(self, result, **kwargs):
-        thread: threading.Thread = threading.Thread(target=on_message, args=(result, ))
+        print('Threading', result.channel.alternatives[0].transcript)
+        thread: threading.Thread = threading.Thread(target=on_mes, args=(result, ))
         thread.daemon = True
         thread.start()
 
