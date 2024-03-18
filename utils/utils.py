@@ -154,6 +154,7 @@ def prepare_translated_data(
                     prev_orig,
                 )
             )
+            thread.daemon = True
             threads.append(thread)
             thread.start()
 

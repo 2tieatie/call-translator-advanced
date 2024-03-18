@@ -4,6 +4,7 @@ import json
 import os
 import queue
 import re
+import threading
 
 import requests
 import websockets
@@ -98,23 +99,21 @@ class Translator:
             sender: Participant,
             receiver: Participant
     ) -> dict[str, str | bool]:
-        # result: str = ''
-
-        # for response in cls.stream_response(messages=messages):
-        #     result += response
-
+        result: list[dict[str, bytes | str]] = list()
         tts_lang = get_language(receiver.language, 'gtts')
-        result: dict[str, bytes | str] = asyncio.run(cls.get_audio(messages=messages))
-
+        thread: threading.Thread = threading.Thread(target=asyncio.run, args=(messages, result, ))
+        thread.daemon = True
+        thread.start()
+        thread.join()
         data: dict[str, str | bool] = {
-            "text": result['text'],
+            "text": result[0]['text'],
             "type": "part",
             "local": False,
             "name": sender.username,
             "original": False,
             "receiver": receiver.user_id,
             "tts_language": tts_lang,
-            "audio": result['audio']
+            "audio": result[0]['audio']
         }
 
         return data
@@ -140,7 +139,7 @@ class Translator:
             prev = result
 
     @classmethod
-    async def get_audio(cls, messages: list[BaseMessage]) -> dict[str, bytes | str]:
+    async def get_audio(cls, messages: list[BaseMessage], results: list[dict[str, bytes | str]]) -> None:
         uri: str = f"wss://api.elevenlabs.io/v1/text-to-speech/{cls.VOICE_ID}/stream-input?model_id=eleven_turbo_v2"
 
         answer: str = ''
@@ -176,7 +175,7 @@ class Translator:
                 'text': answer
             }
 
-            return result
+            results.append(result)
 
     @staticmethod
     def __make_messages(
