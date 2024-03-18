@@ -13,7 +13,7 @@ let lastMessageID
 let audio
 let speaking = false
 let DEBUG_TEST_MESSAGES = false
-let mediaRecorderTimeSlice = 250
+let mediaRecorderTimeSlice = 450
 let firstOpen = true
 
 let changeStateMR = () => {
