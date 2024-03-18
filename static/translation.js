@@ -18,6 +18,7 @@ let mediaRecorderTimeSlice = 250
 
 let changeStateMR = () => {
     if (mediaRecorder === undefined) {
+        console.log('ERROR OCCURRED WITH MediaRecorder (No such instance)')
         return
     }
     if (mediaRecorder.state !== 'recording') {
@@ -58,18 +59,20 @@ let initMediaRecorder = stream => {
 
 
 
-    try {
-        mediaRecorder.start(mediaRecorderTimeSlice)
-    } catch (e) {
-        console.log(e)
-    }
+    // try {
+    //     mediaRecorder.start(mediaRecorderTimeSlice)
+    // } catch (e) {
+    //     console.log(e)
+    // }
 
     if (audioMuted) {
-        changeStateMR()
+        // changeStateMR()
+        mediaRecorder.stop()
 
     } else {
-        changeStateMR()
-        changeStateMR()
+        // changeStateMR()
+        // changeStateMR()
+        mediaRecorder.start(mediaRecorderTimeSlice)
     }
 }
 
