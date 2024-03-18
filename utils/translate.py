@@ -168,7 +168,7 @@ class Translator:
             for text in cls.stream_response(messages=messages):
                 answer += text
                 await websocket.send(json.dumps({"text": text}))
-
+            await websocket.send(json.dumps({"text": ''}))
             audio: bytes = await listen()
 
             result: dict[str, bytes | str] = {
