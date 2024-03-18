@@ -215,8 +215,9 @@ def new_recording(data):
 
     sid = request.sid
     if dg_connections.get(sid):
-        socketio.emit('test', {'message': f'test {type(data["audio"])}'}, to=sid)
         dg_connections[sid].send(data['audio'])
+        socketio.emit('test', {'message': f'test {type(data["audio"])}'}, to=sid)
+
 
 
 @socketio.on("disconnect_recognizer")
@@ -234,7 +235,6 @@ def disconnect_recognizer():
             del dg_connections[sid]
     print(dg_connections)
     print('*' * 99)
-
 
 
 def async_new_recording(data) -> None:

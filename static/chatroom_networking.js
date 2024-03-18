@@ -95,10 +95,9 @@ socket.on("user-list", (data)=>{
     if( "list" in data) // not the first to connect to room, existing user list recieved
     {
         let recvd_list = data["list"];
-        console.log(typeof recvd_list)
         try {
             for (const peer_id in _peer_list) {
-                if (!recvd_list.includes(peer_id)) {
+                if (!recvd_list.hasOwnProperty(peer_id)) {
                     closeConnection(peer_id);
                     removeVideoElement(peer_id);
                 }
