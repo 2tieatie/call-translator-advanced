@@ -218,7 +218,7 @@ def new_recording(data):
 
     sid = request.sid
     if dg_connections.get(sid):
-        socketio.emit('test', {'message': 'test'}, to=sid)
+        socketio.emit('test', {'message': f'test {type(data["audio"])}'}, to=sid)
         dg_connections[sid].send(data['audio'])
 
 
