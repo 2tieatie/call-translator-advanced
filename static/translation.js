@@ -63,11 +63,11 @@ let initMediaRecorder = stream => {
 
 
 
-    // try {
-    //     mediaRecorder.start(mediaRecorderTimeSlice)
-    // } catch (e) {
-    //     console.log(e)
-    // }
+    try {
+        mediaRecorder.start(mediaRecorderTimeSlice)
+    } catch (e) {
+        console.log(e)
+    }
 
     if (audioMuted) {
         changeStateMR()
