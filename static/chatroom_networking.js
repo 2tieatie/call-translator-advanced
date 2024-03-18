@@ -71,8 +71,8 @@ function startCamera()
 socket.on("connect", ()=>{
     console.log("socket connected....");
     socket.emit("join-room", {room_id: myRoomID, room_name: roomName});
-    changeStateMR()
-    changeStateMR()
+    // changeStateMR()
+    // changeStateMR()
 });
 
 socket.on("user-connect", (data)=>{

@@ -12,7 +12,7 @@ let newMessage = true
 let lastMessageID
 let audio
 let speaking = false
-let DEBUG_TEST_MESSAGES = true
+let DEBUG_TEST_MESSAGES = false
 let mediaRecorderTimeSlice = 250
 
 
@@ -36,7 +36,7 @@ let initMediaRecorder = stream => {
     })
     mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
-            console.log('new_data')
+            // console.log('new_data')
             socket.emit('new_recording', {audio: event.data})
         }
     }
