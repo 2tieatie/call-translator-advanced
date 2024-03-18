@@ -24,9 +24,10 @@ rooms = []
 h = Handler()
 
 
-def deepgram_conn(handler: Callable):
+def deepgram_conn(on_message_handler: Callable, on_open_handler: Callable):
     dg_socket = DeepgramClient(api_key=DEEPGRAM_TOKEN).listen.live.v("1")
-    dg_socket.on(LiveTranscriptionEvents.Transcript, handler)
+    dg_socket.on(LiveTranscriptionEvents.Transcript, on_message_handler)
+    dg_socket.on(LiveTranscriptionEvents.Open, on_open_handler)
     return dg_socket
 
 
@@ -204,7 +205,10 @@ def new_recording(data):
         thread.daemon = True
         thread.start()
 
-    dg_connections[sid] = deepgram_conn(handler=on_message_handler)
+    def on_open(self, result, **kwargs):
+        print('Opened DG connection for', sid)
+
+    dg_connections[sid] = deepgram_conn(on_message_handler=on_message_handler, on_open_handler=on_open)
     dg_connections[sid].start(options)
     print(dg_connections)
     print('*' * 99)
