@@ -77,7 +77,7 @@ class Translator:
             first_message=first_message
         )
 
-        data: dict[str, str | bool] = cls.get_answer(messages=messages, sender=sender, receiver=receiver)
+        data: dict[str, str | bool] = run_async(cls.get_answer, messages, sender, receiver)
         print('Text:', text)
 
         translated_text = f'{prev_trans if prev_trans else ""}{data['text']}'
@@ -92,8 +92,9 @@ class Translator:
             }
         )
 
+
     @classmethod
-    def get_answer(
+    async def get_answer(
             cls,
             messages: list[BaseMessage],
             sender: Participant,
@@ -102,8 +103,7 @@ class Translator:
 
         tts_lang = get_language(receiver.language, 'gtts')
 
-        result: dict[str, bytes | str] = run_async(cls.get_audio, messages)
-
+        result: dict[str, bytes | str] = await cls.get_audio(messages)
         data: dict[str, str | bool] = {
             "text": result['text'],
             "type": "part",
@@ -139,7 +139,7 @@ class Translator:
             prev = result
 
     @classmethod
-    async def get_audio(cls, messages: list[BaseMessage]) -> None:
+    async def get_audio(cls, messages: list[BaseMessage]) -> dict[str, bytes | str]:
         uri: str = f"wss://api.elevenlabs.io/v1/text-to-speech/{cls.VOICE_ID}/stream-input?model_id=eleven_turbo_v2"
 
         answer: str = ''
@@ -223,4 +223,6 @@ def run_async(func, *args) -> Any:
     loop = asyncio.get_event_loop()
     result = loop.run_until_complete(func(*args))
     loop.close()
+    print('PROCESSED')
+    print(result['text'], type(result['audio']))
     return result
