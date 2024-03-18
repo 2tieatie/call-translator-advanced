@@ -101,10 +101,12 @@ class Translator:
     ) -> dict[str, str | bool]:
         result: list[dict[str, bytes | str]] = list()
         tts_lang = get_language(receiver.language, 'gtts')
-        thread: threading.Thread = threading.Thread(target=asyncio.run, args=(messages, result, ))
+        thread: threading.Thread = threading.Thread(target=run_async, args=(cls.get_audio, messages, result, ))
         thread.daemon = True
         thread.start()
         thread.join()
+        while not result:
+            pass
         data: dict[str, str | bool] = {
             "text": result[0]['text'],
             "type": "part",
@@ -115,7 +117,7 @@ class Translator:
             "tts_language": tts_lang,
             "audio": result[0]['audio']
         }
-
+        print(data['text'])
         return data
 
     @classmethod
@@ -217,3 +219,5 @@ class Translator:
         return messages
 
 
+def run_async(func, *args):
+    asyncio.run(func(*args))
