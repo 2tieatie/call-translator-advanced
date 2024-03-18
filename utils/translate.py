@@ -101,12 +101,7 @@ class Translator:
     ) -> dict[str, str | bool]:
         result: list[dict[str, bytes | str]] = list()
         tts_lang = get_language(receiver.language, 'gtts')
-        thread: threading.Thread = threading.Thread(target=run_async, args=(cls.get_audio, messages, result, ))
-        thread.daemon = True
-        thread.start()
-        thread.join()
-        while not result:
-            pass
+        run_async_in_thread(cls.get_audio, messages, result)
         data: dict[str, str | bool] = {
             "text": result[0]['text'],
             "type": "part",
@@ -220,4 +215,13 @@ class Translator:
 
 
 def run_async(func, *args):
-    asyncio.run(func(*args))
+    asyncio.set_event_loop(asyncio.new_event_loop())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(func(*args))
+    loop.close()
+
+
+def run_async_in_thread(func, *args):
+    thread = threading.Thread(target=run_async, args=(func, *args))
+    thread.daemon = True
+    thread.start()
