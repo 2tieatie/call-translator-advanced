@@ -2,12 +2,8 @@ import asyncio
 import base64
 import json
 import os
-import queue
 import re
-import threading
 from typing import Any
-
-import requests
 import websockets
 from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage, HumanMessage

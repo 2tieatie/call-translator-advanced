@@ -1,10 +1,5 @@
-import asyncio
-import os
-import threading
-import time
 import uuid
 from typing import Any, Callable
-
 from deepgram import LiveOptions, DeepgramClient, LiveTranscriptionEvents
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from flask_socketio import SocketIO, emit, join_room, leave_room
