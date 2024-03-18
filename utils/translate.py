@@ -1,6 +1,12 @@
+import asyncio
+import base64
+import json
 import os
 import queue
+import re
+
 import requests
+import websockets
 from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage, HumanMessage
 from models.models import Participant
@@ -29,12 +35,21 @@ class Translator:
     OpenChat.model_kwargs = {
         "max_tokens": 1024
     }
-    url = "https://api.elevenlabs.io/v1/text-to-speech/IKne3meq5aSn9XLyUdCD"
+    # url = "https://api.elevenlabs.io/v1/text-to-speech/IKne3meq5aSn9XLyUdCD"
     ELEVEN_MODEL_ID = "eleven_multilingual_v2"
     headers = {
         "xi-api-key": ELEVEN_API_TOKEN,
         "Content-Type": "application/json"
     }
+    VOICE_ID = 'IKne3meq5aSn9XLyUdCD'
+    first_request = json.dumps({
+        "text": " ",
+        "voice_settings": {"stability": 0.5, "similarity_boost": 0.8, "use_speaker_boost": False},
+        "generation_config": {
+            "chunk_length_schedule": [120, 160, 250, 290]
+        },
+        "xi_api_key": ELEVEN_API_TOKEN,
+    })
 
     @classmethod
     def translate(
@@ -61,14 +76,9 @@ class Translator:
             first_message=first_message
         )
 
-        data: dict[str, str | bool] = cls.get_answer(
-            messages=messages,
-            sender=sender,
-            receiver=receiver
-        )
-        print('Prev Trans:', prev_trans)
-        print('Prev Orig:', prev_orig)
+        data: dict[str, str | bool] = cls.get_answer(messages=messages, sender=sender, receiver=receiver)
         print('Text:', text)
+
         translated_text = f'{prev_trans if prev_trans else ""}{data['text']}'
 
         results.append(
@@ -88,37 +98,85 @@ class Translator:
             sender: Participant,
             receiver: Participant
     ) -> dict[str, str | bool]:
+        # result: str = ''
 
-        response: str = cls.OpenChat(messages).content
-        print('RAW:', response)
+        # for response in cls.stream_response(messages=messages):
+        #     result += response
 
-        response = response[response.find('Translation') + 13::]
-        response = response.strip()
-
-        for sign in ['[', '(', '\n', '\\']:
-            if sign in response:
-                response = response[:response.find(sign):]
-
-        for sign in ['"', "'", '.', '*']:
-            response = response.replace(sign, '')
-
-        response = response.strip() + ' '
-        print('Translated:', response)
         tts_lang = get_language(receiver.language, 'gtts')
-
-        audio: bytes = cls.get_audio(response)
+        result: dict[str, bytes | str] = asyncio.run(cls.get_audio(messages=messages))
 
         data: dict[str, str | bool] = {
-            "text": response,
+            "text": result['text'],
             "type": "part",
             "local": False,
             "name": sender.username,
             "original": False,
             "receiver": receiver.user_id,
             "tts_language": tts_lang,
-            "audio": audio
+            "audio": result['audio']
         }
+
         return data
+
+    @classmethod
+    def stream_response(cls, messages: list[BaseMessage]):
+        result = prev = ''
+        passed_trans = False
+        for chunk in cls.OpenChat.stream(messages):
+            part = chunk.content
+            if any(sign in part for sign in ['[', '(', '\n', '\\', '/']):
+                break
+            if passed_trans:
+                part = re.sub(r'[^\w\s]', '', part)
+            result += part
+            if 'Trans: ' in result:
+                result = result.replace('Trans:', '')
+                passed_trans = True
+            if passed_trans:
+                res = result.replace(prev, '')
+                if res:
+                    yield res
+            prev = result
+
+    @classmethod
+    async def get_audio(cls, messages: list[BaseMessage]) -> dict[str, bytes | str]:
+        uri: str = f"wss://api.elevenlabs.io/v1/text-to-speech/{cls.VOICE_ID}/stream-input?model_id=eleven_turbo_v2"
+
+        answer: str = ''
+
+        async with websockets.connect(uri) as websocket:
+            await websocket.send(cls.first_request)
+
+            async def listen() -> bytes:
+                audio_chunks: list[bytes] = []
+                received_final_chunk: bool = False
+                while not received_final_chunk:
+                    try:
+                        message = await websocket.recv()
+                        data = json.loads(message)
+                        if data.get("audio"):
+                            audio_chunks.append(base64.b64decode(data["audio"]))
+                        if data.get('isFinal'):
+                            received_final_chunk = True
+                            break
+                    except websockets.exceptions.ConnectionClosed:
+                        break
+
+                return b''.join(audio_chunks)
+
+            for text in cls.stream_response(messages=messages):
+                answer += text
+                await websocket.send(json.dumps({"text": text}))
+
+            audio: bytes = await listen()
+
+            result: dict[str, bytes | str] = {
+                'audio': audio,
+                'text': answer
+            }
+
+            return result
 
     @staticmethod
     def __make_messages(
@@ -147,7 +205,7 @@ class Translator:
             '''),
             HumanMessage(f'''
             Your task is to translate a small part of a Speech Transcription from {language_from} to {language_to}. 
-            Start your Translation always with “Translation :”. 
+            Start your Translation always with “Trans:”. 
             Don’t say anything else except the translation. Translate into {language_to}. 
             Translate as if you are a native speaker.
 
@@ -159,16 +217,4 @@ class Translator:
 
         return messages
 
-    @classmethod
-    def get_audio(cls, text: str) -> bytes:
-        payload = {
-            "model_id": cls.ELEVEN_MODEL_ID,
-            "text": text
-        }
 
-        response = requests.request("POST", cls.url, json=payload, headers=cls.headers)
-
-        return response.content
-
-
-Translator.get_audio('asd')

@@ -244,6 +244,7 @@ def async_new_recording(data) -> None:
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
 
+
     for receiver in receivers:
         h.call(data={
             "id": message_id,
