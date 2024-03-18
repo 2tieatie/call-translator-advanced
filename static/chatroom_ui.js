@@ -60,6 +60,7 @@ function addVideoElement(element_id, display_name)
 function removeVideoElement(element_id)
 {
     if (!document.getElementById("div_"+element_id)) {
+        console.log(123)
         return
     }
     let v = getVideoObj(element_id);

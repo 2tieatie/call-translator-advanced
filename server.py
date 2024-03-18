@@ -61,8 +61,8 @@ def entry_checkpoint(room_id):
     room = get_room_by_id(room_id=room_id, rooms=rooms)
     if request.method == "POST":
         display_name = request.form['display_name']
-        mute_audio = request.form['mute_audio']
-        mute_video = request.form['mute_video']
+        mute_audio = request.form.get('mute_audio', 1)
+        mute_video = request.form.get('mute_video', 1)
         language = request.form['language']
         session[room_id] = {"name": display_name, "mute_audio":mute_audio, "mute_video":mute_video, 'language': language}
         return redirect(url_for("enter_room", room_id=room_id))
