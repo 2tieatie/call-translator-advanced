@@ -228,7 +228,10 @@ def disconnect_recognizer():
     print('DISCONNECTED RECOGNIZER', sid)
     print(dg_connections)
     if dg_connections.get(sid):
-        dg_connections[sid].finish()
+        try:
+            dg_connections[sid].finish()
+        except AttributeError as ex:
+            print('ERROR OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
         del dg_connections[sid]
     print(dg_connections)
     print('*' * 99)
