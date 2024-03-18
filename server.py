@@ -169,6 +169,7 @@ def new_recording(data):
     options = LiveOptions(model="nova-2", language=language_code)
 
     def on_message(result):
+        print('Handler - on_message(result):', result.channel.alternatives[0].transcript)
         data_arg['speech'] = result.channel.alternatives[0].transcript
 
         if len(data_arg['speech']) == 0:
@@ -197,12 +198,9 @@ def new_recording(data):
             task, task_data = t_data
             task(task_data)
 
-    def on_mes(result):
-        print('HANDLER', result.channel.alternatives[0].transcript)
-
     def on_message_handler(self, result, **kwargs):
-        print('Threading', result.channel.alternatives[0].transcript)
-        thread: threading.Thread = threading.Thread(target=on_mes, args=(result, ))
+        print('Wrapper - on_message_handler(self, result, **kwargs):', result.channel.alternatives[0].transcript)
+        thread: threading.Thread = threading.Thread(target=on_message, args=(result, ))
         thread.daemon = True
         thread.start()
 
