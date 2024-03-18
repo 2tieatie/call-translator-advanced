@@ -99,18 +99,22 @@ class Translator:
             sender: Participant,
             receiver: Participant
     ) -> dict[str, str | bool]:
-        result: list[dict[str, bytes | str]] = list()
+        results: list[dict[str, bytes | str]] = list()
         tts_lang = get_language(receiver.language, 'gtts')
-        run_async_in_thread(cls.get_audio, messages, result)
+        run_async_in_thread(cls.get_audio, messages, results)
+
+        while not results:
+            pass
+
         data: dict[str, str | bool] = {
-            "text": result[0]['text'],
+            "text": results[0]['text'],
             "type": "part",
             "local": False,
             "name": sender.username,
             "original": False,
             "receiver": receiver.user_id,
             "tts_language": tts_lang,
-            "audio": result[0]['audio']
+            "audio": results[0]['audio']
         }
         print(data['text'])
         return data
