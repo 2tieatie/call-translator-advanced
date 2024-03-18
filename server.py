@@ -7,13 +7,15 @@ from languages.get_languages import names
 from utils.utils import *
 from uuid import uuid4
 from utils.utils import Handler
+from flask_cors import CORS
 # Next two lines are for the issue: https://github.com/miguelgrinberg/python-engineio/issues/142
 from engineio.payload import Payload
 Payload.max_decode_packets = 200
 app = Flask(__name__)
+cors = CORS(app)
 app.config['SECRET_KEY'] = "thisismys3cr3tk3y"
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
-socketio = SocketIO(app, async_mode=None, max_http_buffer_size=500 * 1024 * 1024)
+socketio = SocketIO(app, async_mode=None, cors_allowed_origins="*", max_http_buffer_size=500 * 1024 * 1024)
 STEP = int(os.getenv('STEP'))
 DEEPGRAM_TOKEN = os.getenv('DEEPGRAM_TOKEN')
 _users_in_room = {}
