@@ -167,7 +167,7 @@ def new_recording(data):
     print(dg_connections)
     user = get_participant_by_id(room_id=room_id, user_id=sid, rooms=rooms)
     language_code = get_language(user.language, 'deepgram')
-
+    print(language_code)
     options = LiveOptions(model="nova-2", language=language_code)
 
     def on_message(result):
@@ -211,6 +211,13 @@ def new_recording(data):
 
     def on_error(self, result, **kwargs):
         print('Error occured with DG connection for', sid)
+        if dg_connections.get(sid):
+            try:
+                dg_connections[sid].finish()
+            except AttributeError as ex:
+                print('ERROR OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
+            finally:
+                del dg_connections[sid]
 
     dg_connections[sid] = deepgram_conn(
         on_message_handler=on_message_handler,
