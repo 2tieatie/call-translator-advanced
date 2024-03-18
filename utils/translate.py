@@ -5,6 +5,7 @@ import os
 import queue
 import re
 import threading
+from typing import Any
 
 import requests
 import websockets
@@ -24,7 +25,6 @@ def load_env() -> None:
 load_env()
 ELEVEN_API_TOKEN = os.getenv('ELEVEN_TOKEN')
 os.environ["TOGETHERAI_API_KEY"] = os.getenv('TOGETHER_TOKEN')
-
 
 
 class Translator:
@@ -99,28 +99,27 @@ class Translator:
             sender: Participant,
             receiver: Participant
     ) -> dict[str, str | bool]:
-        results: list[dict[str, bytes | str]] = list()
-        tts_lang = get_language(receiver.language, 'gtts')
-        run_async_in_thread(cls.get_audio, messages, results)
 
-        while not results:
-            pass
+        tts_lang = get_language(receiver.language, 'gtts')
+
+        result: dict[str, bytes | str] = run_async(cls.get_audio, messages)
 
         data: dict[str, str | bool] = {
-            "text": results[0]['text'],
+            "text": result['text'],
             "type": "part",
             "local": False,
             "name": sender.username,
             "original": False,
             "receiver": receiver.user_id,
             "tts_language": tts_lang,
-            "audio": results[0]['audio']
+            "audio": result['audio']
         }
         print(data['text'])
         return data
 
     @classmethod
     def stream_response(cls, messages: list[BaseMessage]):
+        print('Started Streaming')
         result = prev = ''
         passed_trans = False
         for chunk in cls.OpenChat.stream(messages):
@@ -140,12 +139,13 @@ class Translator:
             prev = result
 
     @classmethod
-    async def get_audio(cls, messages: list[BaseMessage], results: list[dict[str, bytes | str]]) -> None:
+    async def get_audio(cls, messages: list[BaseMessage]) -> None:
         uri: str = f"wss://api.elevenlabs.io/v1/text-to-speech/{cls.VOICE_ID}/stream-input?model_id=eleven_turbo_v2"
 
         answer: str = ''
 
         async with websockets.connect(uri) as websocket:
+            print('Connected to the server')
             await websocket.send(cls.first_request)
 
             async def listen() -> bytes:
@@ -176,7 +176,7 @@ class Translator:
                 'text': answer
             }
 
-            results.append(result)
+            return result
 
     @staticmethod
     def __make_messages(
@@ -218,14 +218,9 @@ class Translator:
         return messages
 
 
-def run_async(func, *args):
+def run_async(func, *args) -> Any:
     asyncio.set_event_loop(asyncio.new_event_loop())
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(func(*args))
+    result = loop.run_until_complete(func(*args))
     loop.close()
-
-
-def run_async_in_thread(func, *args):
-    thread = threading.Thread(target=run_async, args=(func, *args))
-    thread.daemon = True
-    thread.start()
+    return result
