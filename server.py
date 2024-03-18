@@ -13,7 +13,7 @@ Payload.max_decode_packets = 200
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "thisismys3cr3tk3y"
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
-socketio = SocketIO(app, async_mode='eventlet', max_http_buffer_size=500 * 1024 * 1024)
+socketio = SocketIO(app, async_mode=None, max_http_buffer_size=500 * 1024 * 1024)
 STEP = int(os.getenv('STEP'))
 DEEPGRAM_TOKEN = os.getenv('DEEPGRAM_TOKEN')
 _users_in_room = {}
