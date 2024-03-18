@@ -164,7 +164,8 @@ def new_recording(data):
     data_arg = data
     room_id = data['room_id']
     sid = request.sid
-
+    print('CONNECTED RECOGNIZER', sid)
+    print(dg_connections)
     user = get_participant_by_id(room_id=room_id, user_id=sid, rooms=rooms)
     language_code = get_language(user.language, 'deepgram')
 
@@ -206,7 +207,8 @@ def new_recording(data):
 
     dg_connections[sid] = deepgram_conn(handler=on_message_handler)
     dg_connections[sid].start(options)
-
+    print(dg_connections)
+    print('*' * 99)
 
 @socketio.on("new_recording")
 def new_recording(data):
@@ -220,10 +222,15 @@ def new_recording(data):
 @socketio.on("disconnect_recognizer")
 def disconnect_recognizer():
     sid = request.sid
-
+    print('*' * 99)
+    print('DISCONNECTED RECOGNIZER', sid)
+    print(dg_connections)
     if dg_connections.get(sid):
         dg_connections[sid].finish()
         del dg_connections[sid]
+    print(dg_connections)
+    print('*' * 99)
+
 
 
 def async_new_recording(data) -> None:

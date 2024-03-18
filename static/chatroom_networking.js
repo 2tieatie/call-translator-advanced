@@ -92,9 +92,16 @@ socket.on("user-list", (data)=>{
     console.log("user list recvd ", data);
     myID = data["my_id"];
     getLanguageCode()
+
     if( "list" in data) // not the first to connect to room, existing user list recieved
     {
-        let recvd_list = data["list"];  
+        let recvd_list = data["list"];
+        for (const peer_id in _peer_list) {
+            if (!recvd_list.includes(peer_id)) {
+                closeConnection(peer_id);
+                removeVideoElement(peer_id);
+            }
+        }
         // add existing users to user list
         for(peer_id in recvd_list)
         {
