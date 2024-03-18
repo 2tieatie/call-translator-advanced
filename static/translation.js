@@ -17,6 +17,9 @@ let mediaRecorderTimeSlice = 250
 
 
 let changeStateMR = () => {
+    if (mediaRecorder === undefined) {
+        return
+    }
     if (mediaRecorder.state !== 'recording') {
         mediaRecorder.start(mediaRecorderTimeSlice)
     } else {
