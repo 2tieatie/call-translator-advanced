@@ -212,12 +212,13 @@ def new_recording(data):
     print(dg_connections)
     print('*' * 99)
 
+
 @socketio.on("new_recording")
 def new_recording(data):
 
     sid = request.sid
-    socketio.emit('test', {'message': 'test'}, to=sid)
     if dg_connections.get(sid):
+        socketio.emit('test', {'message': 'test'}, to=sid)
         dg_connections[sid].send(data['audio'])
 
 
@@ -232,7 +233,8 @@ def disconnect_recognizer():
             dg_connections[sid].finish()
         except AttributeError as ex:
             print('ERROR OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
-        del dg_connections[sid]
+        finally:
+            del dg_connections[sid]
     print(dg_connections)
     print('*' * 99)
 
