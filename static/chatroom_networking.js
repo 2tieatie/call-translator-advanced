@@ -41,30 +41,29 @@ function startCamera()
 {
     navigator.mediaDevices.getUserMedia(mediaConstraints)
     .then((stream)=>{
-        setTimeout(async function() {
-            initMediaRecorder(stream);
-        }, 1000)
         myVideo.srcObject = stream;
         camera_allowed = true;
         setAudioMuteState(audioMuted);
         setVideoMuteState(videoMuted);
         console.log(stream)
         socket.connect();
-
+        setTimeout(() => {
+            initMediaRecorder(stream)
+        }, 500)
     })
     .catch((e)=>{
         console.log("getUserMedia Error! ", e);
         navigator.mediaDevices.getUserMedia(mediaConstraintsAudio)
         .then( (stream)=> {
-            setTimeout(async function() {
-                initMediaRecorder(stream);
-            }, 1000)
             myVideo.srcObject = stream;
             camera_allowed = true;
             setAudioMuteState(audioMuted);
             setVideoMuteState(videoMuted);
             console.log(stream)
             socket.connect();
+            setTimeout(() => {
+                initMediaRecorder(stream)
+            }, 500)
         })
     });
 }
