@@ -5,12 +5,14 @@ import os
 import re
 from typing import Any
 import websockets
+from azure.cognitiveservices.speech import SpeechSynthesisResult
 from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage, HumanMessage
 from models.models import Participant
 from langchain_community.chat_models import ChatLiteLLM
 from langchain_core.messages.base import BaseMessage
 from languages.get_languages import get_language
+import azure.cognitiveservices.speech as speechsdk
 
 
 def load_env() -> None:
@@ -20,6 +22,7 @@ def load_env() -> None:
 
 load_env()
 ELEVEN_API_TOKEN = os.getenv('ELEVEN_TOKEN')
+AZURE_TOKEN = os.getenv('AZURE_TOKEN')
 os.environ["TOGETHERAI_API_KEY"] = os.getenv('TOGETHER_TOKEN')
 
 
@@ -48,6 +51,15 @@ class Translator:
         "xi_api_key": ELEVEN_API_TOKEN,
     })
 
+    subscription_key = AZURE_TOKEN
+    region = "eastus"
+    speech_config = speechsdk.SpeechConfig(
+        subscription=subscription_key,
+        region=region,
+    )
+    speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Webm24Khz16BitMonoOpus)
+    audio_config = speechsdk.audio.PullAudioOutputStream()
+
     @classmethod
     def translate(
             cls,
@@ -74,6 +86,7 @@ class Translator:
         )
 
         data: dict[str, str | bool] = run_async(cls.get_answer, messages, sender, receiver)
+
         print('Text:', text)
 
         translated_text = f'{prev_trans if prev_trans else ""}{data['text']}'
@@ -88,7 +101,6 @@ class Translator:
             }
         )
 
-
     @classmethod
     async def get_answer(
             cls,
@@ -98,18 +110,27 @@ class Translator:
     ) -> dict[str, str | bool]:
 
         tts_lang = get_language(receiver.language, 'gtts')
+        text: str = ''
+        # result: dict[str, bytes | str] = await cls.get_audio_elevenlabs(messages)
+        for chunk in cls.stream_response(messages=messages):
+            text += chunk
 
-        result: dict[str, bytes | str] = await cls.get_audio(messages)
+        code: str = tts_languages_data[tts_lang]['code']
+        voice: str = tts_languages_data[tts_lang]['voice']
+
+        audio = cls.get_audio_azure(text=text, voice=voice, language=code)
+
         data: dict[str, str | bool] = {
-            "text": result['text'],
+            "text": text,
             "type": "part",
             "local": False,
             "name": sender.username,
             "original": False,
             "receiver": receiver.user_id,
             "tts_language": tts_lang,
-            "audio": result['audio']
+            "audio": audio
         }
+
         print(data['text'])
         return data
 
@@ -135,7 +156,7 @@ class Translator:
             prev = result
 
     @classmethod
-    async def get_audio(cls, messages: list[BaseMessage]) -> dict[str, bytes | str]:
+    async def get_audio_elevenlabs(cls, messages: list[BaseMessage]) -> dict[str, bytes | str]:
         uri: str = f"wss://api.elevenlabs.io/v1/text-to-speech/{cls.VOICE_ID}/stream-input?model_id=eleven_turbo_v2"
 
         answer: str = ''
@@ -213,7 +234,30 @@ class Translator:
 
         return messages
 
+    @staticmethod
+    def create_xml(text: str, rate: str = '0', voice: str = "en-US-AndrewMultilingualNeural", language: str = "en-US") -> str:
+        return f"""
+                <speak xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" version="1.0" xml:lang="{language}">
+                    <voice name="{voice}">
+                        <prosody rate="{rate}%">{text}</prosody>
+                    </voice>
+                </speak>
+              """
 
+    @classmethod
+    def get_audio_azure(cls, text: str, rate: str = '0', voice: str = "en-US-AndrewMultilingualNeural", language: str = "en-US") -> bytes:
+        xml = cls.create_xml(text=text, rate=rate, voice=voice, language=language)
+        speech_synthesiser = speechsdk.SpeechSynthesizer(speech_config=cls.speech_config, audio_config=cls.audio_config)
+        speech_synthesis_result: SpeechSynthesisResult = speech_synthesiser.speak_ssml(xml)
+        if speech_synthesis_result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+            result: bytes = speech_synthesis_result.audio_data
+            return result
+        elif speech_synthesis_result.reason == speechsdk.ResultReason.Canceled:
+            cancellation_details = speech_synthesis_result.cancellation_details
+            print(f"Speech synthesis canceled: {cancellation_details.reason}")
+            if cancellation_details.reason == speechsdk.CancellationReason.Error:
+                print(f"Error details: {cancellation_details.error_details}")
+        return b''
 def run_async(func, *args) -> Any:
     asyncio.set_event_loop(asyncio.new_event_loop())
     loop = asyncio.get_event_loop()
@@ -222,3 +266,24 @@ def run_async(func, *args) -> Any:
     print('PROCESSED')
     print(result['text'], type(result['audio']))
     return result
+
+
+tts_languages_data = {
+    'Czech': {'code': 'cs-CZ', 'voice': 'cs-CZ-AntoninNeural'},
+    'Danish': {'code': 'da-DK', 'voice': 'da-DK-JeppeNeural'},
+    'Dutch': {'code': 'nl-NL', 'voice': 'nl-NL-MaartenNeural'},
+    'English': {'code': 'en-US', 'voice': 'en-US-GuyNeural'},
+    'French': {'code': 'fr-FR', 'voice': 'fr-FR-HenriNeural'},
+    'German': {'code': 'de-DE', 'voice': 'de-DE-ConradNeural'},
+    'Greek': {'code': 'el-GR', 'voice': 'el-GR-NestorasNeural'},
+    'Indonesian': {'code': 'id-ID', 'voice': 'id-ID-ArdiNeural'},
+    'Italian': {'code': 'it-IT', 'voice': 'it-IT-DiegoNeural'},
+    'Korean': {'code': 'ko-KR', 'voice': 'ko-KR-InJoonNeural'},
+    'Polish': {'code': 'pl-PL', 'voice': 'pl-PL-MarekNeural'},
+    'Portuguese': {'code': 'pt-BR', 'voice': 'pt-BR-AntonioNeural'},
+    'Russian': {'code': 'ru-RU', 'voice': 'ru-RU-DmitryNeural'},
+    'Spanish': {'code': 'es-ES', 'voice': 'es-ES-AlvaroNeural'},
+    'Swedish': {'code': 'sv-SE', 'voice': 'sv-SE-MattiasNeural'},
+    'Turkish': {'code': 'tr-TR', 'voice': 'tr-TR-AhmetNeural'},
+    'Ukrainian': {'code': 'uk-UA', 'voice': 'uk-UA-OstapNeural'}
+}

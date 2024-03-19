@@ -18,10 +18,8 @@ class Handler:
             def wrapper(data, to):
                 result = func(data, to)
                 return result
-
             self.handler = wrapper
             return wrapper
-
         return decorator
 
     def call(self, data, to):
