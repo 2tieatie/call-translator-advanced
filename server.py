@@ -10,6 +10,7 @@ from utils.utils import Handler
 from flask_cors import CORS
 # Next two lines are for the issue: https://github.com/miguelgrinberg/python-engineio/issues/142
 from engineio.payload import Payload
+
 Payload.max_decode_packets = 200
 app = Flask(__name__)
 cors = CORS(app)
