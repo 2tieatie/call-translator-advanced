@@ -258,6 +258,8 @@ class Translator:
             if cancellation_details.reason == speechsdk.CancellationReason.Error:
                 print(f"Error details: {cancellation_details.error_details}")
         return b''
+
+
 def run_async(func, *args) -> Any:
     asyncio.set_event_loop(asyncio.new_event_loop())
     loop = asyncio.get_event_loop()
