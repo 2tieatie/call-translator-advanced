@@ -1,2 +1,6 @@
 portaudio19-dev
-openssl
+build-essential
+libssl-dev
+ca-certificates
+libasound2
+wget
