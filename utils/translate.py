@@ -115,8 +115,8 @@ class Translator:
         for chunk in cls.stream_response(messages=messages):
             text += chunk
 
-        code: str = tts_languages_data[tts_lang]['code']
-        voice: str = tts_languages_data[tts_lang]['voice']
+        code: str = tts_languages_data[receiver.language]['code']
+        voice: str = tts_languages_data[receiver.language]['voice']
 
         audio = cls.get_audio_azure(text=text, voice=voice, language=code)
 
