@@ -85,8 +85,8 @@ class Translator:
             first_message=first_message
         )
 
-        data: dict[str, str | bool] = run_async(cls.get_answer, messages, sender, receiver)
-
+        # data: dict[str, str | bool] = run_async(cls.get_answer, messages, sender, receiver)
+        data: dict[str, str | bool] = cls.get_answer(messages, sender, receiver)
         print('Text:', text)
 
         translated_text = f'{prev_trans if prev_trans else ""}{data['text']}'
@@ -102,7 +102,7 @@ class Translator:
         )
 
     @classmethod
-    async def get_answer(
+    def get_answer(
             cls,
             messages: list[BaseMessage],
             sender: Participant,
