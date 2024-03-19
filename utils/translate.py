@@ -119,7 +119,7 @@ class Translator:
         voice: str = tts_languages_data[receiver.language]['voice']
 
         audio = cls.get_audio_azure(text=text, voice=voice, language=code)
-
+        print(len(audio))
         data: dict[str, str | bool] = {
             "text": text,
             "type": "part",

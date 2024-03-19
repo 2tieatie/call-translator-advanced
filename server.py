@@ -252,7 +252,9 @@ def disconnect_recognizer():
         try:
             dg_connections[sid].finish()
         except AttributeError as ex:
-            print('ERROR OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
+            print('AttributeError OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
+        except RuntimeError as ex:
+            print('RuntimeError OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
         finally:
             del dg_connections[sid]
     print(dg_connections)
