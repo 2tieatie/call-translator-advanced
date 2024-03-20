@@ -1,18 +1,18 @@
-import asyncio
-import base64
-import json
-import os
-import re
-from typing import Any
-import websockets
-from azure.cognitiveservices.speech import SpeechSynthesisResult
-from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage, HumanMessage
-from models.models import Participant
 from langchain_community.chat_models import ChatLiteLLM
 from langchain_core.messages.base import BaseMessage
 from languages.get_languages import get_language
-import azure.cognitiveservices.speech as speechsdk
+from models.models import Participant
+from dotenv import load_dotenv
+from typing import Any
+import websockets
+import requests
+import asyncio
+import base64
+import time
+import json
+import os
+import re
 
 
 def load_env() -> None:
@@ -23,6 +23,7 @@ def load_env() -> None:
 load_env()
 ELEVEN_API_TOKEN = os.getenv('ELEVEN_TOKEN')
 AZURE_TOKEN = os.getenv('AZURE_TOKEN')
+REGION = os.getenv('REGION')
 os.environ["TOGETHERAI_API_KEY"] = os.getenv('TOGETHER_TOKEN')
 
 
@@ -50,15 +51,6 @@ class Translator:
         },
         "xi_api_key": ELEVEN_API_TOKEN,
     })
-
-    subscription_key = AZURE_TOKEN
-    region = "eastus"
-    speech_config = speechsdk.SpeechConfig(
-        subscription=subscription_key,
-        region=region,
-    )
-    speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Webm24Khz16BitMonoOpus)
-    audio_config = speechsdk.audio.PullAudioOutputStream()
 
     @classmethod
     def translate(
@@ -246,19 +238,47 @@ class Translator:
 
     @classmethod
     def get_audio_azure(cls, text: str, rate: str = '0', voice: str = "en-US-AndrewMultilingualNeural", language: str = "en-US") -> bytes:
+        access_token_data = cls.get_access_token()
+        access_token = access_token_data['token']
+        expires = access_token_data['expires']
+
+        if expires >= time.time():
+            access_token_data = cls.get_access_token()
+            access_token = access_token_data['token']
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Host": f"{REGION}.tts.speech.microsoft.com",
+            "Content-Type": "application/ssml+xml",
+            "User-Agent": "YOUR_USER_AGENT",
+            "X-Microsoft-OutputFormat": "webm-24khz-16bit-mono-opus",
+        }
         xml = cls.create_xml(text=text, rate=rate, voice=voice, language=language)
-        speech_synthesiser = speechsdk.SpeechSynthesizer(speech_config=cls.speech_config, audio_config=cls.audio_config)
-        speech_synthesis_result: SpeechSynthesisResult = speech_synthesiser.speak_ssml(xml)
-        if speech_synthesis_result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            result: bytes = speech_synthesis_result.audio_data
+        resp = requests.post(
+            f"https://{REGION}.tts.speech.microsoft.com/cognitiveservices/v1",
+            headers=headers,
+            data=xml.encode("utf-8")
+        )
+
+        if resp.status_code == 200:
+            result: bytes = resp.content
             return result
-        elif speech_synthesis_result.reason == speechsdk.ResultReason.Canceled:
-            cancellation_details = speech_synthesis_result.cancellation_details
-            print(f"Speech synthesis canceled: {cancellation_details.reason}")
-            if cancellation_details.reason == speechsdk.CancellationReason.Error:
-                print(f"Error details: {cancellation_details.error_details}")
+
         return b''
 
+    @classmethod
+    def get_access_token(cls) -> dict[str, float | str]:
+        fetch_token_url: str = f"https://{REGION}.api.cognitive.microsoft.com/sts/v1.0/issueToken"
+        headers: dict[str, str] = {
+            "Ocp-Apim-Subscription-Key": AZURE_TOKEN
+        }
+        response: requests.Response = requests.post(fetch_token_url, headers=headers)
+        access_token: str = str(response.text)
+        expires: float = time.time() + 540
+        return {
+            'token': access_token,
+            'expires': expires
+        }
 
 def run_async(func, *args) -> Any:
     asyncio.set_event_loop(asyncio.new_event_loop())
