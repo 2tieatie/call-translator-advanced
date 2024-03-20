@@ -51,6 +51,7 @@ class Translator:
         },
         "xi_api_key": ELEVEN_API_TOKEN,
     })
+    access_token_data = {'token': None, 'expires': 0}
 
     @classmethod
     def translate(
@@ -238,11 +239,10 @@ class Translator:
 
     @classmethod
     def get_audio_azure(cls, text: str, rate: str = '0', voice: str = "en-US-AndrewMultilingualNeural", language: str = "en-US") -> bytes:
-        access_token_data = cls.get_access_token()
-        access_token = access_token_data['token']
-        expires = access_token_data['expires']
+        access_token = cls.access_token_data['token']
+        expires = cls.access_token_data['expires']
 
-        if expires >= time.time():
+        if expires >= time.time() or not access_token:
             access_token_data = cls.get_access_token()
             access_token = access_token_data['token']
 
@@ -280,14 +280,15 @@ class Translator:
             'expires': expires
         }
 
-def run_async(func, *args) -> Any:
-    asyncio.set_event_loop(asyncio.new_event_loop())
-    loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(func(*args))
-    loop.close()
-    print('PROCESSED')
-    print(result['text'], type(result['audio']))
-    return result
+#
+# def run_async(func, *args) -> Any:
+#     asyncio.set_event_loop(asyncio.new_event_loop())
+#     loop = asyncio.get_event_loop()
+#     result = loop.run_until_complete(func(*args))
+#     loop.close()
+#     print('PROCESSED')
+#     print(result['text'], type(result['audio']))
+#     return result
 
 
 tts_languages_data = {
