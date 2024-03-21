@@ -1,10 +1,6 @@
 let dataArray, analyser
 let lastRecording = new Date().getTime()
-let chunks = []
 let lastRecordingTimeDelta
-let msg = new SpeechSynthesisUtterance();
-msg.rate = 1.25;
-msg.pitch = 0.85;
 let shadows = new Queue()
 let ttsQueue = new Queue()
 let t
