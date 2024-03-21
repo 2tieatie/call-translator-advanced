@@ -26,10 +26,10 @@ let changeStateMR = () => {
 
 let initMediaRecorder = stream => {
 
-    if (!MediaRecorder.isTypeSupported('audio/webm'))
+    if (!MediaRecorder.isTypeSupported('audio/mpeg'))
         return alert('Browser not supported')
     mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm',
+        mimeType: 'audio/mpeg',
     })
     mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
