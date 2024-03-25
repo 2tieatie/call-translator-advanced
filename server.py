@@ -235,13 +235,7 @@ def new_recording(data):
                 print('ERROR OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
             finally:
                 del dg_connections[permanent_id]
-                # dg_connections[permanent_id] = deepgram_conn(
-                #     on_message_handler=on_message_handler,
-                #     on_open_handler=on_open,
-                #     on_error_handler=on_error
-                # )
-                #
-                # dg_connections[permanent_id].start(options)
+
     dg_connections[permanent_id] = deepgram_conn(
         on_message_handler=on_message_handler,
         on_open_handler=on_open,
