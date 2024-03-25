@@ -52,6 +52,7 @@ def create_room():
     else:
         return jsonify({'error': 'room_name is missing in the request headers'}), 400
 
+
 @app.route("/room/<string:room_id>/")
 def enter_room(room_id):
     room = get_room_by_id(room_id=room_id, rooms=rooms)
@@ -331,7 +332,6 @@ def async_new_recording(data) -> None:
 
     for result in results:
         result['data']['id'] = message.id
-        # h.call(data=result['data'], to=result['receiver'].user_id)
         socketio.emit('new_message', result['data'], to=result['receiver'].user_id)
         message.add_translation(language=result['receiver'].language, text=result['translated_text'])
 
