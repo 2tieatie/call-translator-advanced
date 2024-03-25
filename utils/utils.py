@@ -69,13 +69,20 @@ def add_room(room: Room, rooms: list[Room]):
 def get_chat_history(room: Room, user_id: str) -> str:
     result = ''
     for message in room.messages:
-        if user_id == message.sender.user_id or user_id == message.receiver.user_id:
-            message_data_str = f'From: {message.sender.username}\n' \
-                               f'To: {message.receiver.username}\n' \
-                               f'Original text ({message.sender.language}): {message.original_text}\n' \
-                               f'Translated text ({message.receiver.language}): {message.translated_text}\n'
-            result += f'{'-' * 100}\n{message_data_str}'
+        # if user_id == message.sender.user_id:
+        message_data_str = f'From: {message.sender.username}\n' \
+                           f'Original text ({message.sender.language}): {message.original_text}\n'
+        for language, text in message.translated.items():
+            message_data_str += f'Translated text ({language}): {text}\n'
+        result += f'{'-' * 100}\n{message_data_str}'
     return result
+    #     if user_id == message.sender.user_id or user_id == message.receiver.user_id:
+    #         message_data_str = f'From: {message.sender.username}\n' \
+    #                            f'To: {message.receiver.username}\n' \
+    #                            f'Original text ({message.sender.language}): {message.original_text}\n' \
+    #                            f'Translated text ({message.receiver.language}): {message.translated_text}\n'
+    #         result += f'{'-' * 100}\n{message_data_str}'
+    # return result
 
 
 def get_last_messages_by_user_id(room_id: str, user_id: str, rooms: list[Room]) -> str:
