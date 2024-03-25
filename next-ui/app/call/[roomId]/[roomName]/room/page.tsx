@@ -6,14 +6,11 @@ import { useSearchParams } from 'next/navigation';
 import io from 'socket.io-client';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import MicIcon from '@mui/icons-material/Mic';
-import AddLinkIcon from '@mui/icons-material/AddLink';
-import SpeakerNotesIcon from '@mui/icons-material/SpeakerNotes';
 import {changeStateMR, initMediaRecorder} from '@/utils/translation'
 import {
   decode,
   dragAndDrop,
   setAudioMuteState,
-  setVideoMuteState,
   generateAndSavePermanentId,
   handleVideoMute, startLocalVideo, copyToClipboard
 } from '@/utils/utils'
@@ -23,7 +20,6 @@ import {
   onUserConnect,
   onUserDisconnected,
   onUserList,
-  updateRemotePeerConnections
 } from "@/utils/socketNetworkHandlers";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
