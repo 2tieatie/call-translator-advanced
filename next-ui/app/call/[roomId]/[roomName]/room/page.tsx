@@ -9,7 +9,14 @@ import MicIcon from '@mui/icons-material/Mic';
 import AddLinkIcon from '@mui/icons-material/AddLink';
 import SpeakerNotesIcon from '@mui/icons-material/SpeakerNotes';
 import {changeStateMR, initMediaRecorder} from '@/utils/translation'
-import {decode, dragAndDrop, setAudioMuteState, setVideoMuteState, generateAndSavePermanentId} from '@/utils/utils'
+import {
+  decode,
+  dragAndDrop,
+  setAudioMuteState,
+  setVideoMuteState,
+  generateAndSavePermanentId,
+  handleVideoMute, startLocalVideo, copyToClipboard
+} from '@/utils/utils'
 import {
   onConnect,
   onData,
@@ -21,7 +28,7 @@ import {
 import MicOffIcon from "@mui/icons-material/MicOff";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 
-const socket = io('http://127.0.0.1:5000', {autoConnect: true});
+const socket = io('http://127.0.0.1:5000', {autoConnect: false});
 const VideoChat = () => {
   const router = useParams();
   const searchParams = useSearchParams();
@@ -41,7 +48,7 @@ const VideoChat = () => {
   const messagesRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLDivElement>(null);
   const [stream, setStream] = useState<any>(null);
-  const DEBUG_TEST_MESSAGES = true
+  const DEBUG_TEST_MESSAGES = false
   const toggleAudio = () => {
     setAudioMuted(!audioMuted);
     changeStateMR()
@@ -50,33 +57,25 @@ const VideoChat = () => {
       setAudioMuteState(stream, !audioMuted)
     }
   };
-
+  useEffect(() => {
+    console.log(videoMuted);
+    startLocalVideo(videoRef).then(() => {
+      socket.connect();
+      const local_stream_element = videoRef.current as HTMLVideoElement
+      if (!local_stream_element) {
+        return
+      }
+      const local_stream = local_stream_element.srcObject as MediaStream
+      if (!local_stream) {
+        return;
+      }
+      const permanentId = generateAndSavePermanentId();
+      initMediaRecorder(local_stream, socket, roomId, permanentId)
+    });
+  }, []);
   const toggleVideo = () => {
     setVideoMuted(!videoMuted);
-    if (!videoMuted && videoRef.current && videoRef.current.srcObject instanceof MediaStream) {
-      const videoTracks = videoRef.current.srcObject.getVideoTracks();
-      videoTracks.forEach((track) => {
-        track.enabled = false
-        setTimeout( () => {
-          track.stop()
-        }, 500)
-      });
-    }
-    else {
-      startLocalVideo().then( () => {
-        setTimeout(() => {
-            if (videoRef.current && videoRef.current.srcObject instanceof MediaStream) {
-              updateRemotePeerConnections(videoRef.current.srcObject)
-            }
-          }, 500)
-        }
-      )
-    }
-  };
-
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href).catch((err) => console.error('Failed to copy link:', err));
+    handleVideoMute(videoMuted, videoRef)
   };
 
   const toggleChat = () => {
@@ -86,47 +85,6 @@ const VideoChat = () => {
   const downloadChatHistory = () => {
     // Download chat history
   };
-
-  const startLocalVideo = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-          audio:
-              {
-              // channelCount: 2,
-              // autoGainControl: true,
-              // echoCancellation: true,
-              // noiseSuppression: true,
-              // sampleRate: 44100,
-              // sampleSize: 16,
-          },
-          video: true
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      // return stream
-    } catch (error) {
-      console.error('Error accessing media devices:', error);
-    }
-  };
-
-
-  useEffect(() => {
-    console.log(videoMuted)
-    const permanentId = generateAndSavePermanentId();
-    console.log(permanentId)
-    startLocalVideo().then( () => {
-      setTimeout(() => {
-        socket.connect()
-        setTimeout( () => {
-          if (videoRef.current && videoRef.current.srcObject instanceof MediaStream) {
-              initMediaRecorder(videoRef.current.srcObject, socket, roomId, permanentId)
-          }
-        }, 250)
-
-      }, 250)}
-    )
-  }, []);
 
   useEffect(() => {
     dragAndDrop(localVideoRef)
@@ -154,6 +112,26 @@ const VideoChat = () => {
     onData(msg, socket, videoRef.current)
   })
 
+  // socket.on('ready_for_recognizer', () => {
+  //   console.log('READY FOR RECOGNIZER!')
+  //   console.log(audioMuted)
+  //   if (audioMuted) {
+  //     return
+  //   }
+  //   setTimeout( () => {
+  //     const permanentId = generateAndSavePermanentId();
+  //     const local_stream_element: HTMLVideoElement | null = document.getElementById('local_vid') as HTMLVideoElement
+  //     if (!local_stream_element) {
+  //       return
+  //     }
+  //     const local_stream = local_stream_element.srcObject
+  //     if (local_stream && local_stream instanceof MediaStream) {
+  //       initMediaRecorder(local_stream, socket, roomId, permanentId)
+  //     }
+  //   }, 500)
+  // })
+
+
 
   socket.on('test', async (data) => {
     if (DEBUG_TEST_MESSAGES) {
@@ -178,6 +156,19 @@ const VideoChat = () => {
     // }
     // appendMessage(data.local, data.id, data.text, data.original, data.type, data.name)
   })
+
+const copyLink = () => {
+  if (Array.isArray(roomId)) {
+    roomId = roomId[0]
+  }
+  if (Array.isArray(roomName)) {
+    roomName = roomName[0]
+  }
+  const roomIdEncoded = encodeURIComponent(roomId);
+  const roomNameEncoded = encodeURIComponent(roomName);
+  const url = `${window.location.origin}/call/${roomIdEncoded}/${roomNameEncoded}/checkpoint`;
+  copyToClipboard(url);
+};
 
   return (
     <div className="h-screen flex flex-col">

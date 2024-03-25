@@ -8,6 +8,7 @@ let firstOpen = true;
 let lastRecordingTimeDelta = 1;
 let recording = false
 let myPermanentId = ''
+let connected = false
 export let changeStateMR = () => {
     console.log('changing state')
     if (mediaRecorder === undefined) {
@@ -33,6 +34,17 @@ export let initMediaRecorder = (stream: MediaStream, socket: Socket<DefaultEvent
   );
   mediaRecorder.ondataavailable = async (event) => {
   if (event.data.size > 0) {
+      if (!recording) {
+        console.log('Started recorder');
+        socket.emit('connect_recognizer', {
+          room_id: myRoomID,
+          firstCheckpoint: 1,
+          last_recording: lastRecordingTimeDelta,
+          type: 'end',
+          permanent_id: permanentId
+        });
+        recording = true
+      }
       console.log('new_data');
       socket.emit('new_recording', {audio: event.data, permanent_id: permanentId});
   }
@@ -54,6 +66,7 @@ export let initMediaRecorder = (stream: MediaStream, socket: Socket<DefaultEvent
       permanent_id: permanentId
     });
     recording = true
+
   };
   mediaRecorder.onstop = async () => {
     console.log('Ended recorder');
@@ -64,17 +77,19 @@ export let initMediaRecorder = (stream: MediaStream, socket: Socket<DefaultEvent
   };
   try {
     setTimeout(()=> {
-        if (!mediaRecorder) {
-            return
-        }
+      if (!mediaRecorder) {
+        return;
+      }
+      if (mediaRecorder.state !== 'recording') {
         try {
-            mediaRecorder.start(mediaRecorderTimeSlice);
+          mediaRecorder.start(mediaRecorderTimeSlice);
         } catch (e) {
-            console.log(e)
+          console.log(e);
         }
-    }, 750)
+      }
+    }, 750);
   } catch (e) {
-    console.error(e)
+    console.error(e);
   }
   // if (audioMuted) {
   //   // changeStateMR();

@@ -1,71 +1,7 @@
 import {addVideoElement, getVideoObj, removeVideoElement} from "@/utils/utils";
-import {object} from "prop-types";
 
 let myID: any;
 let _peer_list: any = {}
-
-// document.addEventListener("DOMContentLoaded", (event)=>{
-//     startCamera();
-//     document.getElementById('local_vid').muted = true
-// });
-
-let camera_allowed= false;
-let mediaConstraints = {
-    audio: {
-        channels: 2,
-        autoGainControl: true,
-        echoCancellation: true,
-        noiseSuppression: true,
-        sampleRate: 44100,
-        bitrate: 192000,
-
-    },
-    video: true
-};
-
-let mediaConstraintsAudio = {
-    audio: {
-        channels: 2,
-        autoGainControl: true,
-        echoCancellation: true,
-        noiseSuppression: true,
-        sampleRate: 44100,
-        bitrate: 192000,
-
-    },
-    video: false
-};
-
-// function startCamera()
-// {
-//     navigator.mediaDevices.getUserMedia(mediaConstraints)
-//     .then((stream)=>{
-//         initMediaRecorder(stream)
-//         myVideo.srcObject = stream;
-//         camera_allowed = true;
-//         setAudioMuteState(audioMuted);
-//         setVideoMuteState(videoMuted);
-//         console.log(stream)
-//         socket.connect();
-//
-//     })
-//     .catch((e)=>{
-//         console.log("getUserMedia Error! ", e);
-//         navigator.mediaDevices.getUserMedia(mediaConstraintsAudio)
-//         .then((stream)=>{
-//             initMediaRecorder(stream)
-//             myVideo.srcObject = stream;
-//             camera_allowed = true;
-//             setAudioMuteState(audioMuted);
-//             setVideoMuteState(videoMuted);
-//             console.log(stream)
-//             socket.connect();
-//         })
-//     });
-// }
-
-
-
 
 export const onConnect = (socket: any, roomId: any, roomName: any, displayName: any, language: any) => {
     console.log("socket connected....");
@@ -193,8 +129,17 @@ export const invite = (peer_id: string, myVideo: any, socket: any) => {
         console.log(`Creating peer connection for <${peer_id}> ...`);
         createPeerConnection(peer_id, socket);
 
-        let local_stream = myVideo.srcObject;
+      let local_stream = myVideo?.srcObject;
+      //   let local_stream: MediaProvider | HTMLVideoElement | null = document.getElementById('local_stream') as HTMLVideoElement
+      //   if (local_stream) {
+      //       local_stream = local_stream.srcObject
+      //   }
+      if (local_stream && local_stream instanceof MediaStream) {
         local_stream.getTracks().forEach((track: any)=>{_peer_list[peer_id].addTrack(track, local_stream);});
+      } else {
+        console.error('Local stream is null or not a MediaStream');
+        console.log(myVideo)
+      }
     }
 }
 

@@ -1,4 +1,5 @@
 import {updateRemotePeerConnections} from "@/utils/socketNetworkHandlers";
+import React from "react";
 
 const serverURL = 'http://127.0.0.1:5000/'
 
@@ -53,7 +54,7 @@ export function makeVideoElement(elementId: string, displayName: string): HTMLDi
   const vidWrapper = document.createElement("div");
   const vid = document.createElement("video");
   const nameText = document.createElement("h1");
-
+  vid.volume = 0.05
   wrapperDiv.id = `div_${elementId}`;
   vid.id = `vid_${elementId}`;
   vid.className = "remoteVideo rounded-lg shadow-md border border-gray-300 transition-shadow duration-500 ease-in-out";
@@ -79,6 +80,8 @@ export function addVideoElement(elementId: string, displayName: string): void {
   if (videoGrid) {
     videoGrid.appendChild(makeVideoElement(elementId, displayName));
     // getParticipantsWithOtherLanguages();
+  } else {
+    console.log('No Video Grid')
   }
 }
 
@@ -103,7 +106,12 @@ export function removeVideoElement(elementId: string): void {
 }
 
 export function getVideoObj(elementId: string): HTMLVideoElement | null {
-  return document.getElementById(`vid_${elementId}`) as HTMLVideoElement | null;
+  const videoObj = document.getElementById(`vid_${elementId}`) as HTMLVideoElement | null;
+  if (videoObj) {
+    return videoObj
+  }
+  console.log('No videoObj vid_' + elementId)
+  return null
 }
 
 export const dragAndDrop = (element: any) => {
@@ -207,3 +215,51 @@ export const generateAndSavePermanentId = () => {
     return newPermanentId
   }
 };
+
+export const startLocalVideo = async (videoRef: React.RefObject<HTMLVideoElement>): Promise<void> => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+    });
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      await new Promise<void>((resolve) => {
+        videoRef.current!.onloadedmetadata = () => {
+          resolve();
+        };
+      });
+    }
+  } catch (error) {
+    console.error('Error accessing media devices:', error);
+  }
+};
+export const handleVideoMute = (videoMuted: boolean, videoRef: any) => {
+  if (!videoMuted && videoRef.current && videoRef.current.srcObject instanceof MediaStream) {
+      const videoTracks = videoRef.current.srcObject.getVideoTracks();
+      videoTracks.forEach((track: { enabled: boolean; stop: () => void; }) => {
+        track.enabled = false
+        setTimeout( () => {
+          track.stop()
+        }, 500)
+      });
+    }
+    else {
+      startLocalVideo(videoRef).then( () => {
+        setTimeout(() => {
+            if (videoRef.current && videoRef.current.srcObject instanceof MediaStream) {
+              updateRemotePeerConnections(videoRef.current.srcObject)
+            }
+          }, 500)
+        }
+      )
+    }
+}
+
+export async function copyToClipboard(value: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch (err) {
+    console.error('Error occurred:', err);
+  }
+}

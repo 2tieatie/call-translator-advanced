@@ -84,8 +84,9 @@ def on_join_room(data):
     sid = request.sid
 
     room_id = data["room_id"]
-    if _users_in_room.get(room_id) and sid in _users_in_room[room_id]:
-        return
+    if _users_in_room.get(room_id):
+        if sid in _users_in_room[room_id]:
+            return
     room_name = data['room_name']
     display_name = data['display_name']
     language = data['language']
@@ -112,14 +113,16 @@ def on_join_room(data):
         _users_in_room[room_id].append(sid)
 
     print("\nusers: ", _users_in_room, "\n")
+    socketio.emit('ready_for_recognizer', to=sid)
 
 
 @socketio.on("disconnect")
 def on_disconnect():
     sid = request.sid
-    room_id = _room_of_sid[sid]
-    display_name = _name_of_sid[sid]
-
+    room_id = _room_of_sid.get(sid)
+    display_name = _name_of_sid.get(sid)
+    if not room_id or not display_name:
+        return
     print("[{}] Member left: {}<{}>".format(room_id, display_name, sid))
     emit("user-disconnect", {"sid": sid}, broadcast=True, include_self=False, room=room_id)
 
@@ -143,6 +146,7 @@ def on_data(data):
     target_sid = data['target_id']
     if sender_sid != request.sid:
         print("[Not supposed to happen!] request.sid and sender_id don't match!!!")
+        return
 
     if data["type"] != "new-ice-candidate":
         print('{} message from {} to {}'.format(data["type"], sender_sid, target_sid))
@@ -231,13 +235,13 @@ def new_recording(data):
                 print('ERROR OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
             finally:
                 del dg_connections[permanent_id]
-                dg_connections[permanent_id] = deepgram_conn(
-                    on_message_handler=on_message_handler,
-                    on_open_handler=on_open,
-                    on_error_handler=on_error
-                )
-
-                dg_connections[permanent_id].start(options)
+                # dg_connections[permanent_id] = deepgram_conn(
+                #     on_message_handler=on_message_handler,
+                #     on_open_handler=on_open,
+                #     on_error_handler=on_error
+                # )
+                #
+                # dg_connections[permanent_id].start(options)
     dg_connections[permanent_id] = deepgram_conn(
         on_message_handler=on_message_handler,
         on_open_handler=on_open,
