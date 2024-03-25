@@ -130,10 +130,6 @@ export const invite = (peer_id: string, myVideo: any, socket: any) => {
         createPeerConnection(peer_id, socket);
 
       let local_stream = myVideo?.srcObject;
-      //   let local_stream: MediaProvider | HTMLVideoElement | null = document.getElementById('local_stream') as HTMLVideoElement
-      //   if (local_stream) {
-      //       local_stream = local_stream.srcObject
-      //   }
       if (local_stream && local_stream instanceof MediaStream) {
         local_stream.getTracks().forEach((track: any)=>{_peer_list[peer_id].addTrack(track, local_stream);});
       } else {
