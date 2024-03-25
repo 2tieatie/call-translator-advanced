@@ -112,27 +112,6 @@ const VideoChat = () => {
     onData(msg, socket, videoRef.current)
   })
 
-  // socket.on('ready_for_recognizer', () => {
-  //   console.log('READY FOR RECOGNIZER!')
-  //   console.log(audioMuted)
-  //   if (audioMuted) {
-  //     return
-  //   }
-  //   setTimeout( () => {
-  //     const permanentId = generateAndSavePermanentId();
-  //     const local_stream_element: HTMLVideoElement | null = document.getElementById('local_vid') as HTMLVideoElement
-  //     if (!local_stream_element) {
-  //       return
-  //     }
-  //     const local_stream = local_stream_element.srcObject
-  //     if (local_stream && local_stream instanceof MediaStream) {
-  //       initMediaRecorder(local_stream, socket, roomId, permanentId)
-  //     }
-  //   }, 500)
-  // })
-
-
-
   socket.on('test', async (data) => {
     if (DEBUG_TEST_MESSAGES) {
         console.log('TEST MESSAGE RECEIVED')
