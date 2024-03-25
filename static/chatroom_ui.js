@@ -83,48 +83,47 @@ function setAudioMuteState(flag)
     local_stream.getAudioTracks().forEach((track)=>{track.enabled = !flag;});
     audioM = flag
     document.getElementById("mute_icon").innerText = (flag)? "mic_off": "mic";
-    if (!flag) {
-        // socket.emit('connect_recognizer', {
-        //     room_id: myRoomID,
-        //     firstCheckpoint: 1,
-        //     last_recording: lastRecordingTimeDelta,
-        //     type: 'end'
-        // })
-        // mediaRecorder.start(mediaRecorderTimeSlice)
-    } else {
-        // socket.emit('disconnect_recognizer')
-        // mediaRecorder.stop()
-    }
 }
 function stopVideoOnly(stream) {
     stream.getVideoTracks().forEach((track) => {
-        track.stop();
-        // track.enabled = false
+        track.enabled = false;
+        setTimeout(() => {
+            track.stop();
+        }, 2500);
     });
 }
-function setVideoMuteState(flag)
-{
-    let local_stream = myVideo.srcObject;
-    document.getElementById("vid_mute_icon").innerText = (flag)? "videocam_off": "videocam";
-    local_stream.getVideoTracks().forEach((track)=>{track.enabled = !flag;});
-    //
-    // if (flag) {
-    //     console.log('aa')
-    //     stopVideoOnly(myVideo.srcObject)
-    // } else {
-    //     if (!f_time) {
-    //         console.log('1111')
-    //         navigator.mediaDevices.getUserMedia({ video: true })
-    //         .then(stream => {
-    //         myVideo.srcObject = stream;
-    //         myVideo.srcObject.getVideoTracks().forEach( track => {
-    //             track.enabled = true
-    //         });
-    //     })
-    //     start_webrtc()
-    //     }
-    // }
-    // f_time = false
+
+function setVideoMuteState(flag) {
+    let localStream = myVideo.srcObject;
+    const videoMuteIcon = document.getElementById("vid_mute_icon");
+    videoMuteIcon.innerText = flag ? "videocam_off" : "videocam";
+
+    if (flag) {
+        stopVideoOnly(localStream);
+    } else {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                myVideo.srcObject = stream;
+                updateRemotePeerConnections(stream)
+            })
+            .catch(error => {
+                console.error("Error accessing camera", error);
+            });
+    }
+}
+
+function updateRemotePeerConnections(newStream) {
+    for (const peerId in _peer_list) {
+        if (_peer_list.hasOwnProperty(peerId)) {
+            const peerConnection = _peer_list[peerId];
+            const senders = peerConnection.getSenders();
+            senders.forEach(sender => {
+                if (sender.track.kind === 'video') {
+                    sender.replaceTrack(newStream.getVideoTracks()[0]);
+                }
+            });
+        }
+    }
 }
 
 let createLocalMessage = (text) => {

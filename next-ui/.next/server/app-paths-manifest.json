@@ -1,0 +1,6 @@
+{
+  "/page": "app/page.js",
+  "/call/[roomId]/[roomName]/checkpoint/page": "app/call/[roomId]/[roomName]/checkpoint/page.js",
+  "/call/[roomId]/[roomName]/room/page": "app/call/[roomId]/[roomName]/room/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js"
+}

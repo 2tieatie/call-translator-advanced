@@ -1,3 +1,4 @@
+import sys
 import uuid
 from typing import Any, Callable
 from deepgram import LiveOptions, DeepgramClient, LiveTranscriptionEvents
@@ -13,7 +14,7 @@ from engineio.payload import Payload
 
 Payload.max_decode_packets = 200
 app = Flask(__name__)
-cors = CORS(app)
+CORS(app, supports_credentials=True)
 app.config['SECRET_KEY'] = "thisismys3cr3tk3y"
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 socketio = SocketIO(app, async_mode=None, cors_allowed_origins="*", max_http_buffer_size=500 * 1024 * 1024)
@@ -35,18 +36,21 @@ def deepgram_conn(on_message_handler: Callable, on_open_handler: Callable, on_er
     return dg_socket
 
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        room_name = request.form['room_id']
+@app.route("/create_room", methods=["POST"])
+def create_room():
+    room_name = request.headers.get('room_name')
+    if room_name:
         room_id = str(uuid4())
         room = Room(room_id=room_id, name=room_name)
         add_room(room=room, rooms=rooms)
-
-        return redirect(url_for("entry_checkpoint", room_id=room_id, room_name=room.name))
-
-    return render_template("home.html")
-
+        response = {
+            'room_id': room_id,
+            'room_name': room.name
+        }
+        print('Created room', response)
+        return jsonify(response), 201
+    else:
+        return jsonify({'error': 'room_name is missing in the request headers'}), 400
 
 @app.route("/room/<string:room_id>/")
 def enter_room(room_id):
@@ -63,8 +67,6 @@ def entry_checkpoint(room_id):
         display_name = request.form['display_name']
         mute_audio = "1"
         mute_video = "1"
-        # mute_audio = request.form.get('mute_audio', 1)
-        # mute_video = request.form.get('mute_video', 1)
         language = request.form['language']
         session[room_id] = {"name": display_name, "mute_audio":mute_audio, "mute_video":mute_video, 'language': language}
         return redirect(url_for("enter_room", room_id=room_id))
@@ -80,10 +82,16 @@ def on_connect():
 @socketio.on("join-room")
 def on_join_room(data):
     sid = request.sid
+
     room_id = data["room_id"]
+    if _users_in_room.get(room_id) and sid in _users_in_room[room_id]:
+        return
     room_name = data['room_name']
-    display_name = session[room_id]["name"]
+    display_name = data['display_name']
+    language = data['language']
+    session[room_id] = {"name": display_name, 'language': language}
     language = session[room_id]['language']
+    display_name = session[room_id]["name"]
     join_room(room_id)
     _room_of_sid[sid] = room_id
     _name_of_sid[sid] = display_name
@@ -99,7 +107,7 @@ def on_join_room(data):
         _users_in_room[room_id] = [sid]
         emit("user-list", {"my_id": sid})
     else:
-        usrlist = {u_id:_name_of_sid[u_id] for u_id in _users_in_room[room_id]}
+        usrlist = {u_id:_name_of_sid.get(u_id) for u_id in _users_in_room[room_id]}
         emit("user-list", {"list": usrlist, "my_id": sid})
         _users_in_room[room_id].append(sid)
 
@@ -166,7 +174,8 @@ def new_recording(data):
     data_arg = data
     room_id = data['room_id']
     sid = request.sid
-    print('CONNECTED RECOGNIZER', sid)
+    permanent_id = data['permanent_id']
+    print('CONNECTED RECOGNIZER', permanent_id)
     print(dg_connections)
     user = get_participant_by_id(room_id=room_id, user_id=sid, rooms=rooms)
     language_code = get_language(user.language, 'deepgram')
@@ -210,53 +219,60 @@ def new_recording(data):
         thread.start()
 
     def on_open(self, result, **kwargs):
-        print('Opened DG connection for', sid)
+        print('Opened DG connection for', permanent_id)
 
     def on_error(self, result, **kwargs):
-        print('Error occured with DG connection for', sid)
-        if dg_connections.get(sid):
+        print('Error occured with DG connection for', permanent_id)
+        print(result)
+        if dg_connections.get(permanent_id):
             try:
-                dg_connections[sid].finish()
+                dg_connections[permanent_id].finish()
             except AttributeError as ex:
                 print('ERROR OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
             finally:
-                del dg_connections[sid]
+                del dg_connections[permanent_id]
+                dg_connections[permanent_id] = deepgram_conn(
+                    on_message_handler=on_message_handler,
+                    on_open_handler=on_open,
+                    on_error_handler=on_error
+                )
 
-    dg_connections[sid] = deepgram_conn(
+                dg_connections[permanent_id].start(options)
+    dg_connections[permanent_id] = deepgram_conn(
         on_message_handler=on_message_handler,
         on_open_handler=on_open,
         on_error_handler=on_error
     )
-    dg_connections[sid].start(options)
+
+    dg_connections[permanent_id].start(options)
     print(dg_connections)
     print('*' * 99)
 
 
 @socketio.on("new_recording")
-def new_recording(data):
-
+def new_recording1(data):
     sid = request.sid
-    if dg_connections.get(sid):
-        dg_connections[sid].send(data['audio'])
-        socketio.emit('test', {'message': f'test {type(data["audio"])}'}, to=sid)
-
+    permanent_id = data['permanent_id']
+    if dg_connections.get(permanent_id):
+        dg_connections[permanent_id].send(data['audio'])
+        socketio.emit('test', {'message': f'test {type(data["audio"])} {sys.getsizeof(data["audio"])}'}, to=sid)
 
 
 @socketio.on("disconnect_recognizer")
-def disconnect_recognizer():
-    sid = request.sid
+def disconnect_recognizer(data):
+    permanent_id = data['permanent_id']
     print('*' * 99)
-    print('DISCONNECTED RECOGNIZER', sid)
+    print('DISCONNECTED RECOGNIZER', permanent_id)
     print(dg_connections)
-    if dg_connections.get(sid):
+    if dg_connections.get(permanent_id):
         try:
-            dg_connections[sid].finish()
+            dg_connections[permanent_id].finish()
         except AttributeError as ex:
             print('AttributeError OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
         except RuntimeError as ex:
             print('RuntimeError OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
         finally:
-            del dg_connections[sid]
+            del dg_connections[permanent_id]
     print(dg_connections)
     print('*' * 99)
 
@@ -279,24 +295,24 @@ def async_new_recording(data) -> None:
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
     print(message_id, speech, user_id)
-    for receiver in receivers:
-        socketio.emit('new_message', {
-            "id": message_id,
-            "text": speech,
-            "type": "part",
-            "local": False,
-            "name": sender.username,
-            "original": True
-        }, to=receiver.user_id)
-        print(f'Sent to Receiver: {receiver.username}, {receiver.user_id}')
-    socketio.emit('new_message', {
-        "id": message_id,
-        "text": speech,
-        "type": "part",
-        "local": True,
-        "name": sender.username,
-        "original": True
-    }, to=user_id)
+    # for receiver in receivers:
+    #     socketio.emit('new_message', {
+    #         "id": message_id,
+    #         "text": speech,
+    #         "type": "part",
+    #         "local": False,
+    #         "name": sender.username,
+    #         "original": True
+    #     }, to=receiver.user_id)
+    #     print(f'Sent to Receiver: {receiver.username}, {receiver.user_id}')
+    # socketio.emit('new_message', {
+    #     "id": message_id,
+    #     "text": speech,
+    #     "type": "part",
+    #     "local": True,
+    #     "name": sender.username,
+    #     "original": True
+    # }, to=user_id)
 
     if not sender or not receivers:
         return
