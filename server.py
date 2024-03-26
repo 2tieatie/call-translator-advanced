@@ -457,15 +457,22 @@ def deepgram_conn(on_message_handler: Callable, on_open_handler: Callable, on_er
     return dg_socket
 
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        room_name = request.form['room_id']
+@app.route("/create_room", methods=["POST"])
+def create_room():
+    room_name = request.headers.get('room_name')
+    if room_name:
         room_id = str(uuid4())
         room = Room(room_id=room_id, name=room_name)
         add_room(room=room, rooms=rooms)
-        return redirect(url_for("entry_checkpoint", room_id=room_id, room_name=room.name))
-    return render_template("home.html")
+        response = {
+            'room_id': room_id,
+            'room_name': room_name
+        }
+        print('\nCreated room', response)
+        return jsonify(response), 201
+    else:
+        return jsonify({'error': 'room_name is missing in the request headers'}), 400
+
 
 
 @app.route("/room/<string:room_id>/")
