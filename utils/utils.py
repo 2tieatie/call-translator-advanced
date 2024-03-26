@@ -8,7 +8,6 @@ from functools import wraps
 
 
 class Handler:
-
     def __init__(self):
         self.handler = None
 
@@ -73,8 +72,9 @@ def get_chat_history(room: Room, user_id: str) -> str:
                            f'Original text ({message.sender.language}): {message.original_text}\n'
         for language, text in message.translated.items():
             message_data_str += f'Translated text ({language}): {text}\n'
-        result += f'{'-' * 100}\n{message_data_str}'
+        result += f'{"-" * 100}\n{message_data_str}'
     return result
+
 
 
 def get_last_messages_by_user_id(room_id: str, user_id: str, rooms: list[Room]) -> str:

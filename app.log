@@ -1,0 +1,19 @@
+2024-03-26 20:27:28,947 INFO: 
+Requested langs list
+2024-03-26 20:53:23,380 INFO: {}
+2024-03-26 20:53:38,911 INFO: 
+Created room
+2024-03-26 20:53:39,943 INFO: 
+Requested langs list
+2024-03-26 20:53:39,946 INFO: 
+Requested langs list
+2024-03-26 20:53:43,451 INFO: Room <id: 5164ea2a-5703-4357-882c-1be149bd7f97, name: Room, participants: [<models.models.Participant object at 0x122a4b950>], languages: {'English': [<models.models.Participant object at 0x122a4b950>]}>
+2024-03-26 20:53:43,451 INFO: 
+[5164ea2a-5703-4357-882c-1be149bd7f97] New member joined: Misha<ItJrM4IJHabotkaeAAAD>
+2024-03-26 20:53:43,859 INFO: {}
+2024-03-26 20:53:43,860 INFO: en
+2024-03-26 20:53:44,800 INFO: {'7d33703f-6f1a-411f-a7bc-4757c7220d8f': <deepgram.clients.live.v1.client.LiveClient object at 0x122a48110>}
+2024-03-26 20:54:15,912 INFO: ***************************************************************************************************
+2024-03-26 20:54:15,914 INFO: {'7d33703f-6f1a-411f-a7bc-4757c7220d8f': <deepgram.clients.live.v1.client.LiveClient object at 0x122a48110>}
+2024-03-26 20:54:15,914 INFO: {}
+2024-03-26 20:54:15,914 INFO: ***************************************************************************************************

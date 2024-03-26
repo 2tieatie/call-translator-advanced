@@ -9,9 +9,20 @@ from utils.utils import *
 from uuid import uuid4
 from utils.utils import Handler
 from flask_cors import CORS
-# Next two lines are for the issue: https://github.com/miguelgrinberg/python-engineio/issues/142
+import logging
+from logging.handlers import RotatingFileHandler
 from engineio.payload import Payload
 
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+# Next two lines are for the issue: https://github.com/miguelgrinberg/python-engineio/issues/142
+file_handler = RotatingFileHandler('app.log', maxBytes=10240, backupCount=10)
+file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
+logger.addHandler(file_handler)
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
+logger.addHandler(stream_handler)
 Payload.max_decode_packets = 200
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -45,9 +56,9 @@ def create_room():
         add_room(room=room, rooms=rooms)
         response = {
             'room_id': room_id,
-            'room_name': room.name
+            'room_name': room_name
         }
-        print('Created room', response)
+        print('\nCreated room', response)
         return jsonify(response), 201
     else:
         return jsonify({'error': 'room_name is missing in the request headers'}), 400
@@ -102,7 +113,7 @@ def on_join_room(data):
     room.add_participant(participant)
     [print(i) for i in rooms]
 
-    print("[{}] New member joined: {}<{}>".format(room_id, display_name, sid))
+    print("\n[{}] New member joined: {}<{}>".format(room_id, display_name, sid))
     emit("user-connect", {"sid": sid, "name": display_name}, broadcast=True, include_self=False, room=room_id)
 
     if room_id not in _users_in_room:
@@ -124,7 +135,7 @@ def on_disconnect():
     display_name = _name_of_sid.get(sid)
     if not room_id or not display_name:
         return
-    print("[{}] Member left: {}<{}>".format(room_id, display_name, sid))
+    print("\n[{}] Member left: {}<{}>".format(room_id, display_name, sid))
     emit("user-disconnect", {"sid": sid}, broadcast=True, include_self=False, room=room_id)
 
     _users_in_room[room_id].remove(sid)
@@ -150,7 +161,7 @@ def on_data(data):
         return
 
     if data["type"] != "new-ice-candidate":
-        print('{} message from {} to {}'.format(data["type"], sender_sid, target_sid))
+        print('\n{} message from {} to {}'.format(data["type"], sender_sid, target_sid))
     socketio.emit('data', data, room=target_sid)
 
 
@@ -170,6 +181,7 @@ def get_users_with_other_languages(data):
 
 @app.route('/languages', methods=['GET'])
 def get_languages():
+    print('\nRequested langs list')
     return jsonify({'names': names})
 
 
@@ -180,7 +192,7 @@ def new_recording(data):
     room_id = data['room_id']
     sid = request.sid
     permanent_id = data['permanent_id']
-    print('CONNECTED RECOGNIZER', permanent_id)
+    print('\nCONNECTED RECOGNIZER', permanent_id)
     print(dg_connections)
     user = get_participant_by_id(room_id=room_id, user_id=sid, rooms=rooms)
     language_code = get_language(user.language, 'deepgram')
@@ -188,7 +200,7 @@ def new_recording(data):
     options = LiveOptions(model="nova-2", language=language_code)
 
     def on_message(result):
-        print('Handler - on_message(result):', result.channel.alternatives[0].transcript)
+        print('\nHandler - on_message(result):', result.channel.alternatives[0].transcript)
         data_arg['speech'] = result.channel.alternatives[0].transcript
 
         if len(data_arg['speech']) == 0:
@@ -218,22 +230,22 @@ def new_recording(data):
             task(task_data)
 
     def on_message_handler(self, result, **kwargs):
-        print('Wrapper - on_message_handler(self, result, **kwargs):', result.channel.alternatives[0].transcript)
+        print('\nWrapper - on_message_handler(self, result, **kwargs):', result.channel.alternatives[0].transcript)
         thread: threading.Thread = threading.Thread(target=on_message, args=(result, ))
         thread.daemon = True
         thread.start()
 
     def on_open(self, result, **kwargs):
-        print('Opened DG connection for', permanent_id)
+        print('\nOpened DG connection for', permanent_id)
 
     def on_error(self, result, **kwargs):
-        print('Error occured with DG connection for', permanent_id)
+        print('\nError occured with DG connection for', permanent_id)
         print(result)
         if dg_connections.get(permanent_id):
             try:
                 dg_connections[permanent_id].finish()
             except AttributeError as ex:
-                print('ERROR OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
+                print('\nERROR OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
             finally:
                 del dg_connections[permanent_id]
 
@@ -245,7 +257,6 @@ def new_recording(data):
 
     dg_connections[permanent_id].start(options)
     print(dg_connections)
-    print('*' * 99)
 
 
 @socketio.on("new_recording")
@@ -261,15 +272,15 @@ def new_recording1(data):
 def disconnect_recognizer(data):
     permanent_id = data['permanent_id']
     print('*' * 99)
-    print('DISCONNECTED RECOGNIZER', permanent_id)
+    print('\nDISCONNECTED RECOGNIZER', permanent_id)
     print(dg_connections)
     if dg_connections.get(permanent_id):
         try:
             dg_connections[permanent_id].finish()
         except AttributeError as ex:
-            print('AttributeError OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
+            print('\nAttributeError OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
         except RuntimeError as ex:
-            print('RuntimeError OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
+            print('\nRuntimeError OCCURRED WHEN DG PROCESS WAS TRYING TO FINISH')
         finally:
             del dg_connections[permanent_id]
     print(dg_connections)
@@ -277,12 +288,11 @@ def disconnect_recognizer(data):
 
 
 def async_new_recording(data) -> None:
-    print('Entered Func')
+    print('\nEntered Func')
     room_id = data['room_id']
     message_id = data['id']
     room: Room = get_room_by_id(room_id=room_id, rooms=rooms)
     cont = room.is_free(message_id=message_id)
-    # handle_message_part(data=data)
     while not cont:
         cont = room.is_free(message_id=message_id)
 
@@ -295,7 +305,7 @@ def async_new_recording(data) -> None:
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
     print(message_id, speech, user_id)
     # for receiver in receivers:
-    #     socketio.emit('new_message', {
+    #     socketio.emit('\nnew_message', {
     #         "id": message_id,
     #         "text": speech,
     #         "type": "part",
@@ -304,7 +314,7 @@ def async_new_recording(data) -> None:
     #         "original": True
     #     }, to=receiver.user_id)
     #     print(f'Sent to Receiver: {receiver.username}, {receiver.user_id}')
-    # socketio.emit('new_message', {
+    # socketio.emit('\nnew_message', {
     #     "id": message_id,
     #     "text": speech,
     #     "type": "part",
@@ -366,55 +376,15 @@ def get_language_code(user_id: str, room_id: str):
     return jsonify({})
 
 
-def handle_message_part(data: dict[str, str]):
-    print('Entered Handler')
-    message_id = data['id']
-    room_id = data['room_id']
-    speech = data['speech']
-    user_id = data['user_id']
-    receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
-    sender = get_participant_by_id(room_id=room_id, rooms=rooms, user_id=user_id)
-    for receiver in receivers:
-        h.call(data={
-            "id": message_id,
-            "text": speech,
-            "type": "part",
-            "local": False,
-            "name": sender.username,
-            "original": True
-        }, to=receiver.user_id)
-        # socketio.emit('new_message', {
-        #     "id": message_id,
-        #     "text": speech,
-        #     "type": "part",
-        #     "local": False,
-        #     "name": sender.username,
-        #     "original": True
-        # }, to=receiver.user_id)
-        print(f'Sent to Receiver: {receiver.username}, {receiver.user_id}')
-    h.call(data={
-        "id": message_id,
-        "text": speech,
-        "type": "part",
-        "local": True,
-        "name": sender.username,
-        "original": True
-    }, to=user_id)
-    # socketio.emit('new_message', {
-    #     "id": message_id,
-    #     "text": speech,
-    #     "type": "part",
-    #     "local": True,
-    #     "name": sender.username,
-    #     "original": True
-    # }, to=user_id)
-
-    print(f'Sent to Sender: {sender.username}, {sender.user_id}')
-
-
 @h.handle()
 def send_message(data, to):
     socketio.emit('new_message', data, to=to)
+
+@app.route('/logs', methods=['GET'])
+def get_logs():
+    with open('app.log', 'r') as file:
+        log_content = file.read()
+    return log_content
 
 
 if __name__ == "__main__":

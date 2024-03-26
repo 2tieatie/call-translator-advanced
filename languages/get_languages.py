@@ -1,9 +1,10 @@
 import json
+import os
 
 
 def __get_file_path(filename: str = 'languages.json'):
-    return f'{'/'.join(__file__.split('/')[:-1])}/{filename}'
-
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(script_dir, filename)
 
 def __get_languages():
     with open(__get_file_path(), 'r') as file:

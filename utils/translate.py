@@ -82,7 +82,7 @@ class Translator:
         data: dict[str, str | bool] = cls.get_answer(messages, sender, receiver)
         print('Text:', text)
 
-        translated_text = f'{prev_trans if prev_trans else ""}{data['text']}'
+        translated_text = f'{prev_trans if prev_trans else ""}{data["text"]}'
 
         results.append(
             {
