@@ -235,6 +235,7 @@ def new_recording(data):
 @socketio.on("new_recording")
 def new_recording(data):
 
+
     sid = request.sid
     if dg_connections.get(sid):
         dg_connections[sid].send(data['audio'])
