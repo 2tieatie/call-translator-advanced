@@ -716,7 +716,7 @@ def async_new_recording(data) -> None:
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
     print(message_id, speech, user_id)
     for receiver in receivers:
-        socketio.emit('\nnew_message', {
+        socketio.emit('new_message', {
             "id": message_id,
             "text": speech,
             "type": "part",
@@ -725,7 +725,7 @@ def async_new_recording(data) -> None:
             "original": True
         }, to=receiver.user_id)
         print(f'Sent to Receiver: {receiver.username}, {receiver.user_id}')
-    socketio.emit('\nnew_message', {
+    socketio.emit('new_message', {
         "id": message_id,
         "text": speech,
         "type": "part",
