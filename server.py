@@ -769,6 +769,7 @@ def async_new_recording(data) -> None:
 
 @app.route('/get_chat_history', methods=['GET'])
 def get_chat_history_serv():
+    print('REQUESTED CHAT HISTORY')
     room_id = request.args.get('room_id')
     user_id = request.args.get('user_id')
     room = get_room_by_id(room_id=room_id, rooms=rooms)
