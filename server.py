@@ -715,24 +715,24 @@ def async_new_recording(data) -> None:
     sender = get_participant_by_id(room_id=room_id, user_id=user_id, rooms=rooms)
     receivers = get_other_participants(room_id=room_id, user_id=user_id, rooms=rooms)
     print(message_id, speech, user_id)
-    # for receiver in receivers:
-    #     socketio.emit('\nnew_message', {
-    #         "id": message_id,
-    #         "text": speech,
-    #         "type": "part",
-    #         "local": False,
-    #         "name": sender.username,
-    #         "original": True
-    #     }, to=receiver.user_id)
-    #     print(f'Sent to Receiver: {receiver.username}, {receiver.user_id}')
-    # socketio.emit('\nnew_message', {
-    #     "id": message_id,
-    #     "text": speech,
-    #     "type": "part",
-    #     "local": True,
-    #     "name": sender.username,
-    #     "original": True
-    # }, to=user_id)
+    for receiver in receivers:
+        socketio.emit('\nnew_message', {
+            "id": message_id,
+            "text": speech,
+            "type": "part",
+            "local": False,
+            "name": sender.username,
+            "original": True
+        }, to=receiver.user_id)
+        print(f'Sent to Receiver: {receiver.username}, {receiver.user_id}')
+    socketio.emit('\nnew_message', {
+        "id": message_id,
+        "text": speech,
+        "type": "part",
+        "local": True,
+        "name": sender.username,
+        "original": True
+    }, to=user_id)
 
     if not sender or not receivers:
         return
