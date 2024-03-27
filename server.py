@@ -775,6 +775,7 @@ def get_chat_history_serv():
     chat_history_str = get_chat_history(room=room, user_id=user_id)
     with open('chat_history.txt', 'w') as file:
         file.write(chat_history_str)
+    print(chat_history_str)
     return send_file('chat_history.txt', as_attachment=True)
 
 
@@ -790,6 +791,7 @@ def get_language_code(user_id: str, room_id: str):
 @h.handle()
 def send_message(data, to):
     socketio.emit('new_message', data, to=to)
+
 
 @app.route('/logs', methods=['GET'])
 def get_logs():
